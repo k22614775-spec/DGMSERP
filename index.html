@@ -458,4 +458,49 @@ const ERP = (() => {
   }
 
   /** 各模組對應的 HTML 檔 */
-  function loadInventory(panel)       { iframeLoad(panel,'庫存
+  function loadInventory(panel)       { iframeLoad(panel,'庫存管理.html'); }
+  function loadSalesOrder(panel)      { iframeLoad(panel,'銷貨訂單.html'); }
+  function loadPurchaseOrder(panel)   { iframeLoad(panel,'採購單.html'); }
+  function loadGoodsReceipt(panel)    { iframeLoad(panel,'進貨單.html'); }
+  function loadStockIn(panel)         { iframeLoad(panel,'入庫作業.html'); }
+  function loadStockOut(panel)        { iframeLoad(panel,'出庫作業.html'); }
+  function loadStocktake(panel)       { iframeLoad(panel,'盤點作業.html'); }
+  function loadCustomer(panel)        { iframeLoad(panel,'客戶資料.html'); }
+  function loadVendor(panel)          { iframeLoad(panel,'廠商資料.html'); }
+
+  function aboutPanel(panel){
+    panel.innerHTML=`<div style="padding:24px;color:#000;font-size:12px;">
+      <h2 style="color:#000080;margin-bottom:12px;">誼冠鋼品 ERP/MES 整合系統</h2>
+      <table style="border-collapse:collapse;">
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;white-space:nowrap;">公司</td><td>誼冠鋼品股份有限公司</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">架構</td><td>Shell + 獨立 HTML 模組（iframe 嵌入）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">後端</td><td>Supabase（PostgreSQL + PostgREST）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">前端</td><td>Vanilla JS · 單一 HTML 檔 per 模組</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">已完成</td><td>庫存管理（庫存管理.html）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">進行中</td><td>各功能模組逐一建立</td></tr>
+      </table>
+      <div style="margin-top:16px;padding:8px;background:#f0f0f0;border:1px solid #c0c0c0;color:#606060;font-size:11px;">
+        新增模組方式：建立 <b>功能名稱.html</b> → 在 index.html REG 加一條 loader 即可
+      </div></div>`;
+  }
+
+  /* ─ 啟動 ──────────────────────────────────────────── */
+  function boot(){
+    const d=new Date();
+    document.getElementById('status-date').textContent=
+      d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0');
+    setStatus('就緒 · 請從選單或工具列開啟功能模組');
+  }
+
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.menu-item')&&!e.target.closest('.dropdown-menu')) closeAllMenus();
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAllMenus(); });
+
+  return { boot, openModule, closeModule, closeAllModules, toggleMenu, refresh, setStatus };
+})();
+
+document.addEventListener('DOMContentLoaded', ()=>App.boot());
+</script>
+</body>
+</html>
