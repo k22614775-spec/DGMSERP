@@ -482,18 +482,22 @@ select.finput{height:18px;padding:0 2px;}
         <thead>
           <tr>
             <th style="min-width:28px;">#</th>
-            <th style="min-width:100px;">型號</th>
-            <th style="min-width:80px;">倉庫編號</th>
-            <th style="min-width:100px;">批號</th>
-            <th style="min-width:80px;">數量</th>
-            <th style="min-width:80px;">總數</th>
+            <th style="min-width:90px;">批號</th>
+            <th style="min-width:70px;">倉庫編號</th>
+            <th style="min-width:60px;">儲位</th>
+            <th style="min-width:60px;">數量</th>
+            <th style="min-width:80px;">總數(KG)</th>
             <th style="min-width:70px;">長度M</th>
-            <th style="min-width:90px;">異動日期</th>
-            <th style="min-width:120px;">備註</th>
+            <th style="min-width:100px;">原廠捲號</th>
+            <th style="min-width:80px;">進料廠商</th>
+            <th style="min-width:55px;">鋼捲厚</th>
+            <th style="min-width:55px;">鋼捲寬</th>
+            <th style="min-width:60px;">進價</th>
+            <th style="min-width:150px;">備註</th>
           </tr>
         </thead>
         <tbody id="lot-tbody">
-          <tr><td colspan="9" class="no-data" style="text-align:center;padding:12px;color:#888;font-style:italic;">
+          <tr><td colspan="13" class="no-data" style="text-align:center;padding:12px;color:#888;font-style:italic;">
             請先選取型號，再切換至批號明細頁
           </td></tr>
         </tbody>
@@ -1371,22 +1375,22 @@ function switchSubTab(tab) {
 function switchModule(mod) { /* future: multiple modules */ }
 
 // ==========================================
-//  LOT GRID（批號明細）
+//  LOT GRID（批號明細）— 資料來源：storageData
 // ==========================================
 function renderLotGrid() {
   const tbody = document.getElementById('lot-tbody');
   if (!tbody) return;
-  // 依目前選取的型號過濾 detailData
+  // 依目前選取的型號過濾 storageData（批次/儲位資料）
   const 型號 = selMaster ? g(selMaster,'型號') : null;
   const rows = 型號
-    ? detailData.filter(r => g(r,'型號') === 型號)
-    : detailData;
+    ? storageData.filter(r => g(r,'型號') === 型號)
+    : storageData;
 
   tbody.innerHTML = '';
   if (rows.length === 0) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 9;
+    td.colSpan = 13;
     td.className = 'no-data';
     td.style.cssText = 'text-align:center;padding:12px;color:#888;font-style:italic;';
     td.textContent = 型號
@@ -1396,23 +1400,39 @@ function renderLotGrid() {
     tbody.appendChild(tr);
     return;
   }
-  const COLS = ['型號','倉庫編號','批號','數量','總數','長度M','異動日期','備註'];
+  // 欄位順序對應 thead（13欄，不含#）
+  const LOT_COLS = [
+    '批號','倉庫編號','儲位','數量','總數','長度M',
+    '原廠捲號','進料廠商','鋼捲厚度','鋼捲寬度','進價','備註'
+  ];
+  const RIGHT_COLS = new Set(['數量','總數','長度M','鋼捲厚度','鋼捲寬度','進價']);
+
   rows.forEach((row, i) => {
     const tr = document.createElement('tr');
-    // 序號
     const tdN = document.createElement('td');
     tdN.className = 'row-num-td'; tdN.textContent = i + 1;
     tr.appendChild(tdN);
-    COLS.forEach(col => {
+    LOT_COLS.forEach(col => {
       const td = document.createElement('td');
-      td.style.padding = '0 3px';
-      if (col === '異動日期') td.textContent = fmtDate(g(row,col));
-      else if (NUM_COLS.has(col)) { td.textContent = fmtNum(g(row,col)); td.style.textAlign='right'; }
-      else td.textContent = g(row,col);
+      td.style.padding = '0 4px';
+      if (RIGHT_COLS.has(col)) {
+        td.style.textAlign = 'right';
+        td.textContent = fmtNum(g(row,col));
+      } else {
+        td.textContent = g(row,col);
+      }
       tr.appendChild(td);
+    });
+    tr.addEventListener('click', () => {
+      document.querySelectorAll('#lot-tbody tr').forEach(t => t.classList.remove('selected'));
+      tr.classList.add('selected');
     });
     tbody.appendChild(tr);
   });
+  // 顯示合計
+  const total數量 = rows.reduce((s,r) => s + (parseFloat(g(r,'數量'))||0), 0);
+  const total總數 = rows.reduce((s,r) => s + (parseFloat(g(r,'總數'))||0), 0);
+  setStatus(`批號明細：${型號 || '全部'} — 共 ${rows.length} 批 ｜ 數量合計 ${fmtNum(total數量)} 捲 ｜ 總數合計 ${fmtNum(total總數)} KG`);
 }
 
 // ==========================================
