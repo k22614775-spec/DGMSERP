@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>誼冠鋼品 ERP - 庫存管理</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Microsoft YaHei','微軟正黑體','Arial',sans-serif;font-size:12px;}
+html,body{height:100%;overflow:hidden;background:#f0f0f0;color:#000;}
+
+/* ===== TOP NAV BAR ===== */
+#top-nav{
+  display:flex;align-items:center;height:26px;padding:0 4px;gap:3px;
+  background:#d4d0c8;
+  border-bottom:1px solid #808080;box-shadow:0 -1px 0 #fff inset;
+}
+.nav-title{color:#000080;font-weight:bold;font-size:12px;margin-right:6px;letter-spacing:0.5px;}
+.nav-btn{
+  background:#d4d0c8;
+  border:1px solid;border-color:#ffffff #808080 #808080 #ffffff;
+  padding:1px 8px;cursor:pointer;height:20px;
+}
+.nav-btn:hover{background:#dedad4;}
+.nav-btn:active{border-color:#808080 #ffffff #ffffff #808080;background:#c8c5be;}
+.nav-btn.active{background:#c0bdb8;border-color:#808080 #ffffff #ffffff #808080;}
+.nav-spacer{flex:1;}
+.shortcut-hint{color:#000080;font-size:11px;}
+
+/* ===== MODULE TABS ===== */
+#mod-tabs{
+  display:flex;background:#d4d0c8;
+  border-bottom:2px solid #808080;padding:3px 4px 0;gap:2px;
+}
+.mod-tab{
+  padding:2px 14px;border:1px solid #808080;border-bottom:none;
+  cursor:pointer;background:#b8b4ac;border-radius:3px 3px 0 0;
+  margin-bottom:-2px;color:#333;
+}
+.mod-tab.active{background:#f0f0f0;font-weight:bold;border-bottom:2px solid #f0f0f0;z-index:1;color:#000;}
+
+/* ===== TOOLBAR ===== */
+#toolbar{
+  display:flex;align-items:center;gap:3px;padding:2px 4px;
+  background:#d4d0c8;
+  border-bottom:1px solid #808080;flex-shrink:0;
+}
+.tool-btn{
+  background:#d4d0c8;
+  border:1px solid;border-color:#ffffff #808080 #808080 #ffffff;
+  padding:1px 10px;cursor:pointer;height:20px;white-space:nowrap;
+}
+.tool-btn:hover{background:#dedad4;}
+.tool-btn:active{border-color:#808080 #ffffff #ffffff #808080;background:#c8c5be;}
+.tool-btn.danger{color:#aa0000;}
+.toolbar-sep{width:1px;height:16px;background:#808080;margin:0 2px;}
+#dirty-flag{color:#cc0000;font-weight:bold;display:none;}
+
+/* ===== FORM PANEL ===== */
+#form-panel{
+  background:#f0f0f0;padding:4px 6px;flex-shrink:0;
+  border-bottom:2px solid #808080;
+}
+.frow{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin-bottom:2px;}
+.flabel{color:#000080;font-weight:bold;white-space:nowrap;}
+.finput{
+  background:#ffffff;
+  border-top:1px solid #808080;border-left:1px solid #808080;
+  border-right:1px solid #dfdfdf;border-bottom:1px solid #dfdfdf;
+  padding:0 3px;height:17px;min-width:50px;
+}
+.finput:focus{background:#ffffe0;outline:none;
+  border-color:#000080 #a0a0a0 #a0a0a0 #000080;}
+.finput[readonly]{background:#f0f0f0;color:#444;border-color:#c0c0c0;}
+select.finput{height:18px;padding:0 2px;}
+.fdivider{color:#666;margin:0 1px;}
+.fspan{color:#000080;font-weight:bold;min-width:60px;}
+
+/* ===== SUB TABS ===== */
+#sub-tabs{
+  display:flex;background:#d4d0c8;
+  border-bottom:2px solid #808080;padding:2px 4px 0;gap:2px;flex-shrink:0;
+}
+.sub-tab{
+  padding:1px 12px;border:1px solid #808080;border-bottom:none;
+  cursor:pointer;background:#b8b4ac;border-radius:3px 3px 0 0;
+  margin-bottom:-2px;color:#333;
+}
+.sub-tab.active{background:#f0f0f0;font-weight:bold;border-bottom:2px solid #f0f0f0;z-index:1;color:#000;}
+
+/* ===== CONTENT & PANELS ===== */
+#content{display:flex;flex-direction:column;height:calc(100vh - 26px);overflow:hidden;}
+.tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.tab-panel.active{display:flex;}
+
+/* ===== MASTER GRID ===== */
+#master-grid-wrap{flex:1;overflow:auto;background:#fffff0;}
+.data-grid{border-collapse:collapse;width:max-content;min-width:100%;}
+.data-grid thead th{
+  position:sticky;top:0;z-index:5;
+  background:#d4d0c8;
+  border:1px solid #808080;padding:1px 4px;
+  white-space:nowrap;color:#000080;font-weight:bold;
+  box-shadow:inset 1px 1px 0 #ffffff,inset -1px -1px 0 #a0a0a0;
+  cursor:pointer;user-select:none;
+}
+.data-grid thead th:hover{background:#dedad4;}
+.data-grid thead th:active{
+  background:#c8c5be;
+  box-shadow:inset -1px -1px 0 #ffffff,inset 1px 1px 0 #a0a0a0;
+}
+.data-grid thead th.sorted-asc::after{content:' ▲';font-size:9px;}
+.data-grid thead th.sorted-desc::after{content:' ▼';font-size:9px;}
+.data-grid tbody td{
+  border-right:1px solid #d0d0d0;border-bottom:1px solid #d0d0d0;
+  height:17px;padding:0;white-space:nowrap;overflow:hidden;
+  background:#fffff0;
+}
+.data-grid tbody tr:hover td{background:#ddeeff;}
+.data-grid tbody tr.selected td{background:#4d8ec9 !important;}
+.data-grid tbody tr.selected td input{color:#ffffff !important;background:transparent !important;}
+.row-num-td{
+  min-width:28px;text-align:center;background:#e8e4dc !important;
+  color:#888;border-right:1px solid #b0b0b0 !important;font-size:10px;
+}
+.data-grid tbody tr.selected .row-num-td{background:#3a7ab8 !important;color:#fff !important;}
+.data-grid td input{
+  width:100%;height:100%;border:none;background:transparent;
+  outline:none;font-size:12px;padding:0 3px;color:#000;
+}
+.data-grid td input:focus{background:#ffffe0 !important;color:#000 !important;}
+.data-grid tr.selected td input:focus{background:#ffffe0 !important;color:#000 !important;}
+
+/* ===== SPLIT VIEW ===== */
+#split-view{display:flex;flex:1;overflow:hidden;}
+.split-pane{display:flex;flex-direction:column;overflow:hidden;border-right:2px solid #808080;min-width:0;}
+.split-pane:last-child{flex:1;border-right:none;}
+.pane-header{
+  background:#d4d0c8;
+  padding:2px 6px;font-weight:bold;color:#000080;
+  border-bottom:1px solid #808080;flex-shrink:0;font-size:11px;
+  box-shadow:inset 0 1px 0 #ffffff;
+}
+.pane-grid-wrap{flex:1;overflow:auto;background:#fffff0;}
+
+/* ===== STATUS BAR ===== */
+#status-bar{
+  background:#d4d0c8;
+  border-top:2px solid #808080;box-shadow:inset 0 1px 0 #ffffff;
+  padding:1px 8px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;height:20px;
+}
+#status-msg{color:#000;}
+#row-count{color:#000080;font-size:11px;}
+
+/* ===== MODAL ===== */
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;
+  align-items:center;justify-content:center;
+}
+.modal-bg.open{display:flex;}
+.modal-box{
+  background:#f0f0f0;border:2px solid #808080;
+  box-shadow:4px 4px 12px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;max-height:85vh;
+}
+.modal-titlebar{
+  background:#000080;color:#fff;padding:3px 8px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;cursor:default;
+}
+.modal-close-btn{
+  background:#d4d0c8;border:1px solid;border-color:#fff #808080 #808080 #fff;
+  color:#000;width:16px;height:14px;font-size:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:bold;
+}
+.modal-body{padding:6px;overflow:auto;flex:1;}
+.modal-search-row{display:flex;gap:4px;margin-bottom:4px;}
+.modal-search-row input{
+  flex:1;border:1px solid #808080;padding:1px 4px;height:20px;
+}
+
+/* ===== SETTINGS PANEL ===== */
+#settings-modal .modal-box{min-width:480px;}
+.cfg-row{display:flex;align-items:center;margin-bottom:6px;}
+.cfg-label{color:#000080;font-weight:bold;width:130px;flex-shrink:0;}
+.cfg-input{
+  flex:1;border:1px solid #808080;padding:1px 4px;height:20px;font-size:12px;
+}
+.cfg-input:focus{background:#ffffe0;outline:1px solid #000080;}
+.cfg-btns{display:flex;gap:4px;margin-top:10px;justify-content:center;}
+.cfg-btn{
+  background:#d4d0c8;
+  border:1px solid;border-color:#ffffff #808080 #808080 #ffffff;
+  padding:2px 16px;cursor:pointer;height:22px;
+}
+.cfg-btn:hover{background:#dedad4;}
+.cfg-btn:active{border-color:#808080 #ffffff #ffffff #808080;background:#c8c5be;}
+.cfg-btn.primary{background:#4060a0;color:#fff;border-color:#80a0e0 #204080 #204080 #80a0e0;}
+.cfg-btn.primary:hover{background:#4d6db5;}
+.cfg-note{font-size:11px;color:#666;margin-top:8px;padding:4px;background:#ffffd0;border:1px solid #c0c000;}
+
+/* ===== LOADING ===== */
+#loading{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:9999;
+  align-items:center;justify-content:center;
+}
+#loading.show{display:flex;}
+.loading-box{
+  background:#fff;border:2px solid #000080;padding:16px 32px;
+  font-size:13px;box-shadow:4px 4px 8px rgba(0,0,0,.5);
+}
+
+/* ===== BANNER ===== */
+#demo-banner{
+  background:#fffacd;border-bottom:1px solid #c8b400;
+  padding:2px 8px;font-size:11px;color:#7a5c00;display:none;
+  flex-shrink:0;text-align:center;
+  box-shadow:inset 0 -1px 0 #e8d000;
+}
+
+/* ===== WAREHOUSE PANE GRID CELLS ===== */
+#wh-left-tbody td,#wh-mid-tbody td,#wh-right-tbody td{
+  background:#fffff0;border-right:1px solid #d0d0d0;border-bottom:1px solid #d0d0d0;
+  padding:0 3px;height:17px;white-space:nowrap;overflow:hidden;
+}
+#wh-left-tbody tr:hover td,#wh-mid-tbody tr:hover td,#wh-right-tbody tr:hover td{background:#ddeeff;}
+#wh-left-tbody tr.selected td,#wh-mid-tbody tr.selected td,#wh-right-tbody tr.selected td{
+  background:#4d8ec9 !important;color:#fff;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:#e0dcd4;}
+::-webkit-scrollbar-thumb{background:#b0aca4;border:1px solid #888;}
+::-webkit-scrollbar-thumb:hover{background:#a0a0a0;}
+::-webkit-scrollbar-corner{background:#e0dcd4;}
+
+/* ===== MISC ===== */
+.no-data{color:#888;padding:8px;font-style:italic;}
+</style>
+</head>
+<body>
+
+<!-- ===== TOP NAV ===== -->
+<div id="top-nav">
+  <span class="nav-title" id="nav-title">【庫存 · 登入者: SYSTEM|SYSTEM】</span>
+  <button class="nav-btn active" onclick="switchModule('inv')">庫存管理</button>
+  <div class="nav-spacer"></div>
+  <span class="shortcut-hint">Ctrl+S: 儲存 &nbsp;|&nbsp; Ctrl+N: 新增 &nbsp;|&nbsp; F2: 查詢</span>
+  &nbsp;
+  <button class="nav-btn" onclick="openSettings()">⚙ 連線設定</button>
+  <button class="nav-btn" onclick="refreshAll()">↻ 重新整理</button>
+</div>
+
+<!-- ===== CONTENT ===== -->
+<div id="content">
+
+  <!-- Demo Banner -->
+  <div id="demo-banner">⚠ 目前顯示示範資料，尚未連線 Supabase。請點右上角【⚙ 連線設定】輸入資料庫資訊。</div>
+
+  <!-- Module Tabs -->
+  <div id="mod-tabs">
+    <div class="mod-tab active">庫存管理</div>
+  </div>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button class="tool-btn" title="Ctrl+N" onclick="addRow()">＋ 新增</button>
+    <button class="tool-btn" title="Ctrl+S" onclick="saveChanges()">💾 儲存</button>
+    <button class="tool-btn danger" onclick="deleteRow()">✕ 刪除</button>
+    <div class="toolbar-sep"></div>
+    <button class="tool-btn" onclick="refreshAll()">↻ 重新整理</button>
+    <button class="tool-btn" onclick="exportCsv()">⬇ 匯出 CSV</button>
+    <div class="toolbar-sep"></div>
+    <span id="dirty-flag">● 有未儲存的變更</span>
+  </div>
+
+  <!-- Form Panel -->
+  <div id="form-panel">
+    <div class="frow">
+      <span class="flabel">型號</span>
+      <input class="finput" id="f_型號" style="width:80px" readonly tabindex="-1">
+      <span class="flabel" style="margin-left:16px;">品名規格</span>
+      <input class="finput" id="f_品名規格" style="width:200px" oninput="syncFormToRow('品名規格',this.value)">
+      <span style="flex:1"></span>
+      <span class="flabel">類別</span>
+      <input class="finput" id="f_類別" style="width:70px" oninput="syncFormToRow('類別',this.value)">
+    </div>
+    <div class="frow">
+      <span class="flabel">材質編號</span>
+      <input class="finput" id="f_材質編號" style="width:80px" oninput="syncFormToRow('材質編號',this.value)">
+      <span class="flabel" style="margin-left:8px;">排別</span>
+      <input class="finput" id="f_成本類別" style="width:60px" oninput="syncFormToRow('成本類別',this.value)">
+      <span class="flabel" style="margin-left:8px;">尺寸</span>
+      <input class="finput" id="f_厚度" style="width:52px" oninput="syncFormToRow('厚度',this.value)">
+      <span class="fdivider">×</span>
+      <input class="finput" id="f_寬度" style="width:52px" oninput="syncFormToRow('寬度',this.value)">
+      <span class="fdivider">×</span>
+      <input class="finput" id="f_長度" style="width:52px" oninput="syncFormToRow('長度',this.value)">
+      <span class="flabel" style="margin-left:8px;">顏色</span>
+      <input class="finput" id="f_顏色" style="width:70px" oninput="syncFormToRow('顏色',this.value)">
+      <span class="flabel" style="margin-left:8px;">漆種</span>
+      <input class="finput" id="f_漆種" style="width:70px" oninput="syncFormToRow('漆種',this.value)">
+    </div>
+    <div class="frow">
+      <span class="flabel">緒薄</span>
+      <input class="finput" id="f_管厚" style="width:60px" oninput="syncFormToRow('管厚',this.value)">
+      <span class="flabel" style="margin-left:8px;">抗拉強度</span>
+      <input class="finput" id="f_抗拉強度" style="width:80px" oninput="syncFormToRow('抗拉強度',this.value)">
+      <span class="flabel" style="margin-left:8px;">單位</span>
+      <input class="finput" id="f_單位" style="width:50px" oninput="syncFormToRow('單位',this.value)">
+      <span class="flabel" style="margin-left:8px;">本倉數量</span>
+      <input class="finput" id="f_本倉數量" style="width:70px" readonly tabindex="-1">
+      <span class="fdivider">0</span>
+      <span class="flabel">本倉總數</span>
+      <input class="finput" id="f_本倉總數" style="width:80px" readonly tabindex="-1">
+    </div>
+    <div class="frow">
+      <span class="flabel">寄倉數量</span>
+      <input class="finput" id="f_寄倉數量" style="width:70px" readonly tabindex="-1">
+      <span class="fdivider">0</span>
+      <span class="flabel">寄倉總數</span>
+      <input class="finput" id="f_寄倉總數" style="width:80px" readonly tabindex="-1">
+      <span class="flabel" style="margin-left:8px;">公式</span>
+      <input class="finput" id="f_公式編號" style="width:60px" oninput="syncFormToRow('公式編號',this.value)">
+      <span class="flabel" style="margin-left:8px;">單位量</span>
+      <input class="finput" id="f_單位重" style="width:70px" oninput="syncFormToRow('單位重',this.value)">
+      <span class="flabel" style="margin-left:8px;">比重</span>
+      <input class="finput" id="f_密度" style="width:60px" oninput="syncFormToRow('密度',this.value)">
+    </div>
+    <div class="frow">
+      <span class="flabel">成本基準</span>
+      <select class="finput" id="f_成本基準" style="width:80px" onchange="syncFormToRow('成本基準',this.value)">
+        <option value="1">1 總數</option>
+        <option value="2">2 數量</option>
+        <option value="3">3 其他</option>
+      </select>
+      <span class="flabel" style="margin-left:8px;">逾價</span>
+      <input class="finput" id="f_進價" style="width:70px" oninput="syncFormToRow('進價',this.value)">
+      <span class="flabel" style="margin-left:8px;">金額</span>
+      <input class="finput" id="f_金額" style="width:80px" readonly tabindex="-1">
+      <span class="flabel" style="margin-left:8px;">發票型號</span>
+      <input class="finput" id="f_發票型號" style="width:110px" oninput="syncFormToRow('發票型號',this.value)">
+      <span class="flabel" style="margin-left:8px;">售價</span>
+      <input class="finput" id="f_售價" style="width:70px" oninput="syncFormToRow('售價',this.value)">
+    </div>
+    <div class="frow">
+      <span class="flabel">安全數量</span>
+      <input class="finput" id="f_安全數量" style="width:70px" oninput="syncFormToRow('安全數量',this.value)">
+      <span class="fdivider">0</span>
+      <span class="flabel">安全總數</span>
+      <input class="finput" id="f_安全總數" style="width:80px" oninput="syncFormToRow('安全總數',this.value)">
+      <span class="fdivider">0.00</span>
+      <span class="flabel" style="margin-left:8px;">異動日期</span>
+      <input class="finput" id="f_異動日期" style="width:110px" readonly tabindex="-1">
+      <span class="flabel" style="margin-left:8px;">預設倉號</span>
+      <input class="finput" id="f_預設倉號" style="width:60px" oninput="syncFormToRow('預設倉號',this.value)">
+      <span class="flabel" style="margin-left:8px;">庫存控管</span>
+      <input class="finput" id="f_庫存控管" style="width:50px" oninput="syncFormToRow('庫存控管',this.value)">
+      <span class="flabel" style="margin-left:8px;">批號控管</span>
+      <input class="finput" id="f_批號控管" style="width:50px" oninput="syncFormToRow('批號控管',this.value)">
+    </div>
+    <div class="frow">
+      <span class="flabel">備註</span>
+      <input class="finput" id="f_備註" style="width:360px" oninput="syncFormToRow('備註',this.value)">
+    </div>
+  </div>
+
+  <!-- Sub Tabs -->
+  <div id="sub-tabs">
+    <div class="sub-tab active" id="stab_master" onclick="switchSubTab('master')">庫存主檔</div>
+    <div class="sub-tab" id="stab_warehouse" onclick="switchSubTab('warehouse')">倉庫存量</div>
+  </div>
+
+  <!-- ===== TAB: 庫存主檔 ===== -->
+  <div class="tab-panel active" id="panel_master">
+    <div id="master-grid-wrap">
+      <table class="data-grid" id="master-grid">
+        <thead><tr id="master-thead"></tr></thead>
+        <tbody id="master-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== TAB: 倉庫存量 ===== -->
+  <div class="tab-panel" id="panel_warehouse">
+    <div id="split-view">
+      <!-- Left: Item list -->
+      <div class="split-pane" style="width:220px;flex-shrink:0;">
+        <div class="pane-header">▶ 型號清單</div>
+        <div class="pane-grid-wrap" id="wh-left-wrap">
+          <table class="data-grid" id="wh-left-grid">
+            <thead>
+              <tr>
+                <th style="min-width:50px;">型號</th>
+                <th style="min-width:80px;">品名規格</th>
+                <th style="min-width:40px;">緒薄</th>
+                <th style="min-width:55px;">本倉數量</th>
+              </tr>
+            </thead>
+            <tbody id="wh-left-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Middle: Warehouse detail -->
+      <div class="split-pane" style="width:400px;flex-shrink:0;">
+        <div class="pane-header">▶ 庫存細項</div>
+        <div class="pane-grid-wrap" id="wh-mid-wrap">
+          <table class="data-grid" id="wh-mid-grid">
+            <thead>
+              <tr>
+                <th>倉庫編號</th>
+                <th>倉庫名稱</th>
+                <th>數量</th>
+                <th>總數</th>
+                <th>進價</th>
+                <th>金額</th>
+                <th>異動日期</th>
+                <th>備註</th>
+              </tr>
+            </thead>
+            <tbody id="wh-mid-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Right: Storage detail -->
+      <div class="split-pane">
+        <div class="pane-header">▶ 儲位明細</div>
+        <div class="pane-grid-wrap" id="wh-right-wrap">
+          <table class="data-grid" id="wh-right-grid">
+            <thead>
+              <tr>
+                <th>批號</th>
+                <th>數量</th>
+                <th>總數</th>
+                <th>原廠捲號</th>
+                <th>爐號</th>
+                <th>儲位</th>
+                <th>進料廠商</th>
+                <th>鋼捲厚度</th>
+                <th>鋼捲寬度</th>
+                <th>長度M</th>
+                <th>進價</th>
+                <th>鋼捲捲向</th>
+                <th>備註</th>
+                <th>單位</th>
+              </tr>
+            </thead>
+            <tbody id="wh-right-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div id="status-bar">
+    <span id="status-msg">就緒</span>
+    <span id="row-count"></span>
+  </div>
+
+</div><!-- #content -->
+
+<!-- ===== F2 LOOKUP MODAL ===== -->
+<div class="modal-bg" id="lookup-modal">
+  <div class="modal-box" style="width:520px;">
+    <div class="modal-titlebar">
+      <span id="lookup-title">快速查詢 (F2)</span>
+      <button class="modal-close-btn" onclick="closeLookup()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-search-row">
+        <input type="text" id="lookup-search" placeholder="輸入關鍵字過濾…" oninput="filterLookup(this.value)" style="font-size:12px;">
+        <button class="cfg-btn" onclick="closeLookup()">取消 (Esc)</button>
+      </div>
+      <div style="max-height:320px;overflow:auto;border:1px solid #808080;">
+        <table class="data-grid" id="lookup-grid" style="width:100%;">
+          <thead><tr id="lookup-thead"></tr></thead>
+          <tbody id="lookup-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:4px;font-size:11px;color:#666;">點擊列選取 · Enter 確認</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS MODAL ===== -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal-box" style="min-width:500px;">
+    <div class="modal-titlebar">
+      <span>⚙ Supabase 連線設定</span>
+      <button class="modal-close-btn" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cfg-row">
+        <span class="cfg-label">Supabase URL</span>
+        <input class="cfg-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">Anon/Service Key</span>
+        <input class="cfg-input" id="cfg-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIs...">
+      </div>
+      <hr style="border:none;border-top:1px solid #c0c0c0;margin:8px 0;">
+      <div class="cfg-row">
+        <span class="cfg-label">庫存主檔 表名</span>
+        <input class="cfg-input" id="cfg-t1" placeholder="inventory_master">
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">庫存細項 表名</span>
+        <input class="cfg-input" id="cfg-t2" placeholder="inventory_detail">
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-label">儲位明細 表名</span>
+        <input class="cfg-input" id="cfg-t3" placeholder="inventory_storage">
+      </div>
+      <div class="cfg-note">
+        ⚠ 注意：所有資料表欄位名稱必須與 Supabase 中實際欄位名稱完全一致（含中文）。<br>
+        若使用 PostgREST，請確認 RLS 已開啟並允許 anon 角色存取。
+      </div>
+      <div class="cfg-btns">
+        <button class="cfg-btn primary" onclick="saveSettings()">✔ 確定連線</button>
+        <button class="cfg-btn" onclick="testConn()">🔌 測試連線</button>
+        <button class="cfg-btn" onclick="closeSettings()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOADING ===== -->
+<div id="loading"><div class="loading-box">⏳ 資料載入中，請稍候…</div></div>
+
+<script>
+// ==========================================
+//  CONFIG & SUPABASE INIT
+// ==========================================
+const LS = (k, def='') => localStorage.getItem(k) || def;
+let CFG = {
+  url: LS('erp_url'),
+  key: LS('erp_key'),
+  t1:  LS('erp_t1','inventory_master'),
+  t2:  LS('erp_t2','inventory_detail'),
+  t3:  LS('erp_t3','inventory_storage'),
+};
+let SB = null;
+
+function initSB() {
+  if (!CFG.url || !CFG.key) { SB = null; return false; }
+  try {
+    SB = window.supabase.createClient(CFG.url, CFG.key, {
+      auth: { persistSession: false }
+    });
+    return true;
+  } catch(e) { SB = null; return false; }
+}
+
+// ==========================================
+//  STATE
+// ==========================================
+let masterData   = [];
+let detailData   = [];
+let storageData  = [];
+let selMaster    = null;   // selected master row object
+let selDetail    = null;   // selected detail row object
+let dirtyMaster  = new Set();  // indices of dirty master rows
+let currentSubTab = 'master';
+let sortState    = { col: null, asc: true };
+let lookupCb     = null;
+
+// ==========================================
+//  MASTER COLUMNS DEFINITION
+// ==========================================
+// Full set of columns to show in the main grid (ordered by importance)
+const MASTER_COLS = [
+  '型號','品名規格','厚度','寬度','長度',
+  '公式編號','單位重','密度',
+  '本倉數量','本倉總數','進價','金額',
+  '寄倉數量','寄倉總數',
+  '材質編號','單位','成本基準','異動日期','備註',
+  '發票型號','安全數量','安全總數',
+  '類別','顏色','漆種','鍍層','抗拉強度','管厚',
+  '售價','廠別編號','預設倉號','庫存控管','批號控管',
+  '英文品名','銷貨品名','外徑','內徑','內箱','中箱','外箱',
+  '外箱材積','外箱淨重','外箱毛重','正面漆種','背面漆種',
+  '正面漆膜厚','背面漆膜厚','包裝方式','成本類別',
+];
+
+// Columns with numeric formatting
+const NUM_COLS = new Set([
+  '厚度','寬度','長度','單位重','密度','進價','售價',
+  '本倉數量','本倉總數','寄倉數量','寄倉總數',
+  '安全數量','安全總數','管厚','外徑','內徑',
+  '外箱材積','外箱淨重','外箱毛重',
+  '正面漆膜厚','背面漆膜厚','數量','總數','長度M',
+  '鋼捲厚度','鋼捲寬度','鋼捲比重',
+]);
+
+// Columns supporting F2 lookup
+const F2_COLS = new Set([
+  '型號','類別','材質編號','顏色','漆種','鍍層','抗拉強度','單位',
+  '倉庫編號','預設倉號',
+]);
+
+// ==========================================
+//  API HELPERS (follow supabase-case-rule)
+// ==========================================
+async function apiGet(table, filters={}, limit=5000) {
+  if (!SB) throw new Error('未連線 Supabase');
+  let q = SB.from(table).select('*').limit(limit);
+  for (const [k,v] of Object.entries(filters)) {
+    if (k === '_order') { q = q.order(v); continue; }
+    // Rule 1: filter keys follow actual DB column names (Chinese preserved as-is)
+    if (typeof v==='string' && v.startsWith('eq.'))    q = q.eq(k, v.slice(3));
+    else if (typeof v==='string' && v.startsWith('ilike.')) q = q.ilike(k, v.slice(6));
+    else q = q.eq(k, v);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
+
+async function apiUpsert(table, rows, pk) {
+  if (!SB) throw new Error('未連線 Supabase');
+  const arr = Array.isArray(rows) ? rows : [rows];
+  // Rule 4: send payload with exact DB column names (Chinese as-is)
+  const { data, error } = await SB.from(table).upsert(arr, { onConflict: pk });
+  if (error) throw error;
+  return data;
+}
+
+async function apiDelete(table, filter) {
+  if (!SB) throw new Error('未連線 Supabase');
+  let q = SB.from(table).delete();
+  for (const [k,v] of Object.entries(filter)) q = q.eq(k,v);
+  const { error } = await q;
+  if (error) throw error;
+}
+
+// Rule 3: safe getter with fallback
+const g = (row, col) => {
+  if (!row) return '';
+  const v = row[col];
+  return (v === null || v === undefined) ? '' : v;
+};
+
+// ==========================================
+//  FORMAT HELPERS
+// ==========================================
+function fmtDate(v) {
+  if (!v) return '';
+  try {
+    const d = new Date(v);
+    if (isNaN(d)) return String(v);
+    const tw = d.getFullYear() - 1911;
+    return `${tw}年${String(d.getMonth()+1).padStart(2,'0')}月${String(d.getDate()).padStart(2,'0')}日`;
+  } catch { return String(v); }
+}
+
+function fmtNum(v, dec=3) {
+  if (v===null || v===undefined || v==='') return '';
+  const n = parseFloat(v);
+  if (isNaN(n)) return v;
+  // Remove trailing zeros
+  return n.toFixed(dec).replace(/\.?0+$/,'') || '0';
+}
+
+function fmtCell(col, val) {
+  if (val===null || val===undefined || val==='') return '';
+  if (col==='異動日期' || col==='建檔日期' || col==='異動時間') return fmtDate(val);
+  if (NUM_COLS.has(col)) return fmtNum(val);
+  return String(val);
+}
+
+// Compute 金額 = 本倉總數 × 進價
+function calcGold(row) {
+  const 總數 = parseFloat(g(row,'本倉總數')) || 0;
+  const 進價 = parseFloat(g(row,'進價')) || 0;
+  const v = 總數 * 進價;
+  return isNaN(v) ? '' : fmtNum(v);
+}
+
+// ==========================================
+//  UI HELPERS
+// ==========================================
+const show = id => document.getElementById(id).classList.add(...(id.includes('loading') ? ['show'] : ['open']));
+const hide = id => document.getElementById(id).classList.remove(...(id.includes('loading') ? ['show'] : ['open']));
+const setStatus = msg => document.getElementById('status-msg').textContent = msg;
+const setCount  = n   => document.getElementById('row-count').textContent  = `共 ${n} 筆`;
+function markDirty(idx) { dirtyMaster.add(idx); document.getElementById('dirty-flag').style.display=''; }
+function clearDirty() { dirtyMaster.clear(); document.getElementById('dirty-flag').style.display='none'; }
+
+// ==========================================
+//  DEMO DATA
+// ==========================================
+function loadDemoData() {
+  masterData = [
+    {型號:'T1',品名規格:'TEST1',厚度:0,寬度:0,長度:0,單位:null,成本基準:1,公式編號:null,單位重:0,密度:0,類別:null,進價:25,售價:0,異動日期:'2026-04-16',安全數量:0,安全總數:0,發票型號:null,備註:null,材質編號:null,異動人員:'SYSTEM',規格:'  0.00    0.0    0.0',本倉數量:0,本倉總數:0,寄倉數量:0,寄倉總數:0,成本類別:0,外徑:0,管厚:0,顏色:null,漆種:null,鍍層:null,抗拉強度:null,內徑:0,序號:'051_1~b01qh3rECAF9',廠別編號:null,庫存控管:null,預設倉號:null,批號控管:null},
+    {型號:'T2',品名規格:'TEST2',厚度:0,寬度:0,長度:0,單位:null,成本基準:1,公式編號:null,單位重:0,密度:0,類別:null,進價:30,售價:0,異動日期:'2026-04-23',安全數量:0,安全總數:0,發票型號:null,備註:null,材質編號:null,異動人員:'SYSTEM',規格:'  0.00    0.0    0.0',本倉數量:0,本倉總數:0,寄倉數量:0,寄倉總數:0,成本類別:0,外徑:0,管厚:0,顏色:null,漆種:null,鍍層:null,抗拉強度:null,內徑:0,序號:'051_1~b72tChn23069',廠別編號:null,庫存控管:null,預設倉號:null,批號控管:'N'},
+    {型號:'T3',品名規格:'TEST3',厚度:0,寬度:0,長度:0,單位:null,成本基準:1,公式編號:null,單位重:0,密度:0,類別:null,進價:0,售價:0,異動日期:'2026-05-06',安全數量:0,安全總數:0,發票型號:null,備註:null,材質編號:null,異動人員:'SYSTEM',規格:'  0.00    0.0    0.0',本倉數量:0,本倉總數:0,寄倉數量:0,寄倉總數:0,成本類別:0,外徑:0,管厚:0,顏色:null,漆種:null,鍍層:null,抗拉強度:null,內徑:0,序號:'051_1~cQ3g|d72211B',廠別編號:null,庫存控管:'Y',預設倉號:'A1',批號控管:null},
+    {型號:'T4',品名規格:'TEST4',厚度:0,寬度:0,長度:0,單位:null,成本基準:1,公式編號:null,單位重:0,密度:0,類別:null,進價:0,售價:0,異動日期:'2026-05-08',安全數量:0,安全總數:0,發票型號:null,備註:null,材質編號:null,異動人員:'SYSTEM',規格:'  0.00    0.0    0.0',本倉數量:33,本倉總數:357,寄倉數量:0,寄倉總數:0,成本類別:0,外徑:0,管厚:0,顏色:null,漆種:null,鍍層:null,抗拉強度:null,內徑:0,序號:'051_1~cR2swYy8B071',廠別編號:null,庫存控管:'Y',預設倉號:'A2',批號控管:'Y'},
+  ];
+  detailData = [
+    {序號:'051_1~b01sIOOCE419',對應序號:'051_1~b01qh3rECAF9',倉庫編號:'A1',型號:'T1',數量:0,總數:0,成本基準:1,進價:25,異動日期:'2026-04-16',備註:null},
+    {序號:'051_1~bC25LdQ85F52',對應序號:'051_1~b72tChn23069',倉庫編號:'A1',型號:'T2',數量:0,總數:0,成本基準:1,進價:20,異動日期:'2026-04-16',備註:null},
+    {序號:'051_1~bD4eVqM4D380',對應序號:'051_1~b72tChn23069',倉庫編號:'A2',型號:'T2',數量:0,總數:0,成本基準:1,進價:30,異動日期:'2026-04-16',備註:null},
+    {序號:'051_1~cQ3hELM48D9C',對應序號:'051_1~cQ3g|d72211B',倉庫編號:'A2',型號:'T3',數量:0,總數:0,成本基準:1,進價:0,異動日期:'2026-05-06',備註:null},
+    {序號:'051_1~cR2t25G68664',對應序號:'051_1~cR2swYy8B071',倉庫編號:'A2',型號:'T4',數量:33,總數:357,成本基準:1,進價:0,異動日期:'2026-05-08',備註:null},
+  ];
+  storageData = [
+    {STK序號:'051_1~b01sIOOCE419',序號:'051_1~b92RY6dB09C3',倉庫編號:'A1',型號:'T1',儲位:null,批號:null,原廠捲號:null,爐號:null,進料廠商:'S1',數量:0,總數:0,備註:null,鋼捲厚度:null,鋼捲寬度:null,鋼捲比重:null,長度M:null,進價:null,內圈:null,鋼捲捲向:null},
+    {STK序號:'051_1~bD4eVqM4D380',序號:'051_1~bD4eVqg4E73D',倉庫編號:'A2',型號:'T2',儲位:null,批號:111223,原廠捲號:null,爐號:null,進料廠商:'S1',數量:5,總數:2000,備註:null,鋼捲厚度:null,鋼捲寬度:null,鋼捲比重:null,長度M:null,進價:30,內圈:null,鋼捲捲向:null},
+    {STK序號:'051_1~cQ3hELM48D9C',序號:'051_1~cQ3hELx49159',倉庫編號:'A2',型號:'T3',儲位:null,批號:null,原廠捲號:null,爐號:null,進料廠商:null,數量:0,總數:0,備註:null,鋼捲厚度:null,鋼捲寬度:null,鋼捲比重:null,長度M:null,進價:0,內圈:null,鋼捲捲向:null},
+    {STK序號:'051_1~cR2t25G68664a',序號:'051_1~cS2mkif802AE',倉庫編號:'A2',型號:'T4',儲位:null,批號:1150508001,原廠捲號:null,爐號:null,進料廠商:'S1',數量:1,總數:12.86,備註:null,鋼捲厚度:0,鋼捲寬度:0,鋼捲比重:0,長度M:0,進價:0,內圈:null,鋼捲捲向:2},
+    {STK序號:'051_1~cR2t25G68664b',序號:'051_1~cS2mkif802AF',倉庫編號:'A2',型號:'T4',儲位:'S1S1',批號:1150508002,原廠捲號:null,爐號:null,進料廠商:'S1',數量:1,總數:12.86,備註:null,鋼捲厚度:0,鋼捲寬度:0,鋼捲比重:0,長度M:0,進價:0,內圈:null,鋼捲捲向:2},
+    {STK序號:'051_1~cR2t25G68664c',序號:'051_1~cS2mkif802AG',倉庫編號:'A2',型號:'T4',儲位:'S1S1',批號:1150508003,原廠捲號:null,爐號:null,進料廠商:'S1',數量:1,總數:12.86,備註:null,鋼捲厚度:0,鋼捲寬度:0,鋼捲比重:0,長度M:0,進價:0,內圈:null,鋼捲捲向:2},
+  ];
+  document.getElementById('demo-banner').style.display = 'block';
+  setStatus('⚠ 示範資料 (未連線 Supabase)');
+  renderAll();
+}
+
+// ==========================================
+//  DATA LOAD
+// ==========================================
+async function refreshAll() {
+  if (!SB) { loadDemoData(); return; }
+  show('loading');
+  try {
+    [masterData, detailData, storageData] = await Promise.all([
+      apiGet(CFG.t1),
+      apiGet(CFG.t2),
+      apiGet(CFG.t3),
+    ]);
+    document.getElementById('demo-banner').style.display='none';
+    setStatus(`已載入：主檔 ${masterData.length} 筆 · 細項 ${detailData.length} 筆 · 儲位 ${storageData.length} 筆`);
+    clearDirty();
+    renderAll();
+  } catch(e) {
+    setStatus('❌ 載入失敗：' + e.message);
+    console.error(e);
+  } finally {
+    hide('loading');
+  }
+}
+
+function renderAll() {
+  renderMasterGrid();
+  if (currentSubTab === 'warehouse') {
+    renderWhLeft();
+    if (selMaster) renderWhMid(selMaster);
+  }
+}
+
+// ==========================================
+//  MASTER GRID
+// ==========================================
+function renderMasterGrid() {
+  const thead = document.getElementById('master-thead');
+  const tbody  = document.getElementById('master-tbody');
+
+  // Build header
+  thead.innerHTML = '<th class="row-num-td">#</th>' +
+    MASTER_COLS.map(col => {
+      let cls = '';
+      if (sortState.col === col) cls = sortState.asc ? 'sorted-asc' : 'sorted-desc';
+      return `<th class="${cls}" onclick="sortBy('${col}')" style="min-width:${colWidth(col)}px;">${col}</th>`;
+    }).join('');
+
+  // Build rows
+  tbody.innerHTML = '';
+  masterData.forEach((row, idx) => {
+    tbody.appendChild(buildMasterTr(row, idx));
+  });
+
+  setCount(masterData.length);
+}
+
+function colWidth(col) {
+  const wide = {品名規格:120,異動日期:90,備註:100,英文品名:120,銷貨品名:120,發票型號:90,規格:90};
+  const narrow = {型號:60,單位:40,類別:50,成本基準:60};
+  if (wide[col]) return wide[col];
+  if (narrow[col]) return narrow[col];
+  return 70;
+}
+
+function buildMasterTr(row, idx) {
+  const tr = document.createElement('tr');
+  tr.dataset.idx = idx;
+  if (selMaster && g(row,'型號') === g(selMaster,'型號')) tr.classList.add('selected');
+
+  // Row number
+  const tdNum = document.createElement('td');
+  tdNum.className = 'row-num-td';
+  tdNum.textContent = idx + 1;
+  tr.appendChild(tdNum);
+
+  MASTER_COLS.forEach(col => {
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    let val = g(row, col);
+    if (col === '金額') {
+      val = calcGold(row);
+      input.readOnly = true;
+      input.tabIndex = -1;
+    } else {
+      input.value = fmtCell(col, val) === '' ? '' : fmtCell(col, val);
+    }
+    if (col === '金額' && !input.value) input.value = calcGold(row);
+    input.dataset.col = col;
+    input.dataset.idx = idx;
+
+    input.addEventListener('focus', () => selectMasterIdx(idx));
+    input.addEventListener('change', e => onMasterCellChange(e.target, idx, col));
+    input.addEventListener('keydown', e => onMasterCellKey(e, input, idx, col));
+
+    td.appendChild(input);
+    tr.appendChild(td);
+  });
+
+  tr.addEventListener('mousedown', e => {
+    if (e.target.tagName !== 'INPUT') selectMasterIdx(idx);
+  });
+
+  return tr;
+}
+
+function selectMasterIdx(idx) {
+  const row = masterData[idx];
+  if (!row) return;
+  selMaster = row;
+
+  // Update grid highlighting
+  document.querySelectorAll('#master-tbody tr').forEach(tr => {
+    tr.classList.toggle('selected', parseInt(tr.dataset.idx) === idx);
+  });
+
+  // Update form panel
+  fillForm(row);
+
+  // Update wh-left if visible
+  if (currentSubTab === 'warehouse') {
+    document.querySelectorAll('#wh-left-tbody tr').forEach(tr => {
+      tr.classList.toggle('selected', parseInt(tr.dataset.idx) === idx);
+    });
+    renderWhMid(row);
+  }
+
+  setStatus(`已選：${g(row,'型號')} - ${g(row,'品名規格')}`);
+}
+
+function onMasterCellChange(input, idx, col) {
+  let val = input.value;
+  // Parse number if numeric column
+  if (NUM_COLS.has(col) && val !== '') val = parseFloat(val) || 0;
+  masterData[idx][col] = val === '' ? null : val;
+  markDirty(idx);
+  // Refresh calculated fields
+  if (['本倉總數','進價'].includes(col)) {
+    const goldInput = input.closest('tr').querySelectorAll('input')[MASTER_COLS.indexOf('金額')+1];
+    if (goldInput) goldInput.value = calcGold(masterData[idx]);
+  }
+  if (selMaster && g(masterData[idx],'型號') === g(selMaster,'型號')) {
+    fillForm(masterData[idx]);
+  }
+}
+
+function onMasterCellKey(e, input, idx, col) {
+  if (e.key === 'F2' && F2_COLS.has(col)) {
+    e.preventDefault();
+    openLookup(col, input);
+    return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move to next row same column
+    const nextTr = input.closest('tr').nextElementSibling;
+    if (nextTr) {
+      const inputs = nextTr.querySelectorAll('input');
+      const colIdx = MASTER_COLS.indexOf(col);
+      if (inputs[colIdx+1]) inputs[colIdx+1].focus();
+    }
+  }
+}
+
+// ==========================================
+//  FORM PANEL
+// ==========================================
+const FORM_FIELDS = [
+  '型號','品名規格','類別','材質編號','成本類別',
+  '厚度','寬度','長度','顏色','漆種','管厚','抗拉強度',
+  '單位','本倉數量','本倉總數','寄倉數量','寄倉總數',
+  '公式編號','單位重','密度','進價','售價',
+  '發票型號','安全數量','安全總數','異動日期','備註',
+  '預設倉號','庫存控管','批號控管',
+];
+
+function fillForm(row) {
+  if (!row) return;
+  FORM_FIELDS.forEach(f => {
+    const el = document.getElementById('f_'+f);
+    if (!el) return;
+    const v = g(row,f);
+    if (f === '異動日期' || f === '建檔日期') {
+      el.value = fmtDate(v);
+    } else if (f === '成本基準') {
+      el.value = v || 1;
+    } else {
+      el.value = v;
+    }
+  });
+  // Computed
+  const goldEl = document.getElementById('f_金額');
+  if (goldEl) goldEl.value = calcGold(row);
+}
+
+function syncFormToRow(col, val) {
+  if (!selMaster) return;
+  const idx = masterData.indexOf(selMaster);
+  if (idx < 0) return;
+  let parsed = val;
+  if (NUM_COLS.has(col) && val !== '') parsed = parseFloat(val) || 0;
+  masterData[idx][col] = parsed === '' ? null : parsed;
+  markDirty(idx);
+  // Update grid cell
+  const tr = document.querySelector(`#master-tbody tr[data-idx="${idx}"]`);
+  if (tr) {
+    const colIdx = MASTER_COLS.indexOf(col);
+    if (colIdx >= 0) {
+      const inputs = tr.querySelectorAll('input');
+      if (inputs[colIdx+1]) inputs[colIdx+1].value = val;
+    }
+    // Update 金額
+    const goldIdx = MASTER_COLS.indexOf('金額');
+    if (goldIdx >= 0) {
+      const goldInput = tr.querySelectorAll('input')[goldIdx+1];
+      if (goldInput) goldInput.value = calcGold(masterData[idx]);
+    }
+  }
+}
+
+// ==========================================
+//  SORTING
+// ==========================================
+function sortBy(col) {
+  if (sortState.col === col) sortState.asc = !sortState.asc;
+  else { sortState.col = col; sortState.asc = true; }
+  masterData.sort((a, b) => {
+    const va = g(a,col), vb = g(b,col);
+    if (va==='' && vb!=='') return 1;
+    if (va!=='' && vb==='') return -1;
+    const cmp = String(va).localeCompare(String(vb),'zh-TW',{numeric:true,sensitivity:'base'});
+    return sortState.asc ? cmp : -cmp;
+  });
+  renderMasterGrid();
+  // Re-select
+  if (selMaster) {
+    const idx = masterData.findIndex(r => g(r,'型號')===g(selMaster,'型號'));
+    if (idx>=0) {
+      const tr = document.querySelector(`#master-tbody tr[data-idx="${idx}"]`);
+      if (tr) { tr.classList.add('selected'); tr.scrollIntoView({block:'nearest'}); }
+    }
+  }
+}
+
+// ==========================================
+//  CRUD
+// ==========================================
+function addRow() {
+  const newRow = {};
+  MASTER_COLS.forEach(c => newRow[c] = null);
+  newRow['型號'] = '';
+  newRow['品名規格'] = '';
+  newRow['成本基準'] = 1;
+  newRow['異動日期'] = new Date().toISOString().slice(0,10);
+  masterData.unshift(newRow);
+  renderMasterGrid();
+  selectMasterIdx(0);
+  // Focus 型號 input
+  setTimeout(() => {
+    const firstInput = document.querySelector('#master-tbody tr:first-child input');
+    if (firstInput) firstInput.focus();
+  }, 50);
+  markDirty(0);
+}
+
+async function saveChanges() {
+  if (dirtyMaster.size === 0) { setStatus('✔ 無需儲存'); return; }
+  if (!SB) { alert('請先設定 Supabase 連線（右上角 ⚙）'); return; }
+
+  const toSave = Array.from(dirtyMaster).map(i => {
+    const row = {...masterData[i]};
+    // Remove computed-only fields
+    delete row['金額'];
+    return row;
+  }).filter(r => r && g(r,'型號') !== '');
+
+  if (toSave.length === 0) { setStatus('⚠ 請先填入型號'); return; }
+
+  show('loading');
+  try {
+    await apiUpsert(CFG.t1, toSave, '型號');
+    clearDirty();
+    setStatus(`✅ 已儲存 ${toSave.length} 筆`);
+  } catch(e) {
+    setStatus('❌ 儲存失敗：' + e.message);
+    alert('儲存失敗：\n' + e.message);
+  } finally {
+    hide('loading');
+  }
+}
+
+async function deleteRow() {
+  if (!selMaster) { alert('請先選擇一列'); return; }
+  const 型號 = g(selMaster,'型號');
+  if (!型號) {
+    // Just remove from local
+    const idx = masterData.indexOf(selMaster);
+    masterData.splice(idx,1);
+    selMaster = null;
+    renderMasterGrid();
+    return;
+  }
+  if (!confirm(`確定要刪除型號【${型號}】？\n此操作無法復原。`)) return;
+
+  if (!SB) {
+    masterData = masterData.filter(r => g(r,'型號') !== 型號);
+    selMaster = null;
+    renderMasterGrid();
+    setStatus(`已刪除（示範）: ${型號}`);
+    return;
+  }
+  show('loading');
+  try {
+    await apiDelete(CFG.t1, {'型號': 型號});
+    masterData = masterData.filter(r => g(r,'型號') !== 型號);
+    selMaster = null;
+    clearDirty();
+    renderMasterGrid();
+    setStatus(`✅ 已刪除：${型號}`);
+  } catch(e) {
+    setStatus('❌ 刪除失敗：' + e.message);
+    alert('刪除失敗：\n' + e.message);
+  } finally {
+    hide('loading');
+  }
+}
+
+// ==========================================
+//  EXPORT CSV
+// ==========================================
+function exportCsv() {
+  const bom = '﻿';
+  const header = MASTER_COLS.join(',');
+  const rows = masterData.map(row =>
+    MASTER_COLS.map(col => {
+      const v = g(row,col);
+      if (v === '') return '';
+      const s = String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(',')
+  );
+  const csv = bom + header + '\n' + rows.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = '庫存主檔_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ==========================================
+//  WAREHOUSE TAB: LEFT (item list)
+// ==========================================
+function renderWhLeft() {
+  const tbody = document.getElementById('wh-left-tbody');
+  tbody.innerHTML = '';
+  masterData.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    if (selMaster && g(row,'型號') === g(selMaster,'型號')) tr.classList.add('selected');
+    tr.innerHTML = `
+      <td style="padding:0 3px;">${g(row,'型號')}</td>
+      <td style="padding:0 3px;">${g(row,'品名規格')}</td>
+      <td style="padding:0 3px;text-align:right;">${fmtNum(g(row,'管厚'))}</td>
+      <td style="padding:0 3px;text-align:right;">${g(row,'本倉數量')}</td>
+    `;
+    tr.addEventListener('click', () => {
+      selMaster = masterData[idx];
+      document.querySelectorAll('#wh-left-tbody tr').forEach(t => t.classList.remove('selected'));
+      tr.classList.add('selected');
+      fillForm(selMaster);
+      renderWhMid(selMaster);
+      // Sync with master grid
+      document.querySelectorAll('#master-tbody tr').forEach(t => {
+        t.classList.toggle('selected', parseInt(t.dataset.idx) === idx);
+      });
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ==========================================
+//  WAREHOUSE TAB: MIDDLE (detail)
+// ==========================================
+function renderWhMid(masterRow) {
+  const tbody = document.getElementById('wh-mid-tbody');
+  tbody.innerHTML = '';
+  selDetail = null;
+
+  const 型號 = g(masterRow,'型號');
+  const 序號 = g(masterRow,'序號');
+  const details = detailData.filter(d =>
+    g(d,'型號') === 型號 || g(d,'對應序號') === 序號
+  );
+
+  if (details.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">無庫存細項</td></tr>';
+    document.getElementById('wh-right-tbody').innerHTML =
+      '<tr><td colspan="14" class="no-data">無儲位明細</td></tr>';
+    return;
+  }
+
+  details.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    const 金額 = (parseFloat(g(row,'總數'))||0) * (parseFloat(g(row,'進價'))||0);
+    tr.innerHTML = `
+      <td style="padding:0 3px;">${g(row,'倉庫編號')}</td>
+      <td style="padding:0 3px;">${g(row,'倉庫名稱')||''}</td>
+      <td style="padding:0 3px;text-align:right;">${g(row,'數量')}</td>
+      <td style="padding:0 3px;text-align:right;">${g(row,'總數')}</td>
+      <td style="padding:0 3px;text-align:right;">${g(row,'進價')}</td>
+      <td style="padding:0 3px;text-align:right;">${fmtNum(金額)}</td>
+      <td style="padding:0 3px;">${fmtDate(g(row,'異動日期'))}</td>
+      <td style="padding:0 3px;">${g(row,'備註')}</td>
+    `;
+    tr.addEventListener('click', () => {
+      selDetail = row;
+      document.querySelectorAll('#wh-mid-tbody tr').forEach(t => t.classList.remove('selected'));
+      tr.classList.add('selected');
+      renderWhRight(row);
+    });
+    tbody.appendChild(tr);
+    // Auto-select first
+    if (idx === 0) {
+      selDetail = row;
+      tr.classList.add('selected');
+      renderWhRight(row);
+    }
+  });
+}
+
+// ==========================================
+//  WAREHOUSE TAB: RIGHT (storage)
+// ==========================================
+const STORAGE_DISPLAY = [
+  '批號','數量','總數','原廠捲號','爐號','儲位',
+  '進料廠商','鋼捲厚度','鋼捲寬度','長度M','進價','鋼捲捲向','備註','單位'
+];
+
+function renderWhRight(detailRow) {
+  const tbody = document.getElementById('wh-right-tbody');
+  tbody.innerHTML = '';
+  const stkSeq = g(detailRow,'序號');
+  const 型號   = g(detailRow,'型號');
+  const 倉庫   = g(detailRow,'倉庫編號');
+
+  const storages = storageData.filter(s =>
+    g(s,'STK序號') === stkSeq ||
+    (g(s,'型號') === 型號 && g(s,'倉庫編號') === 倉庫)
+  );
+
+  if (storages.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="14" class="no-data">無儲位明細</td></tr>';
+    return;
+  }
+
+  storages.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = STORAGE_DISPLAY.map(col =>
+      `<td style="padding:0 3px;${NUM_COLS.has(col)?'text-align:right;':''}">${fmtCell(col, g(row,col))}</td>`
+    ).join('');
+    tr.addEventListener('click', () => {
+      document.querySelectorAll('#wh-right-tbody tr').forEach(t => t.classList.remove('selected'));
+      tr.classList.add('selected');
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ==========================================
+//  F2 LOOKUP
+// ==========================================
+let lookupAllData = [];
+
+function openLookup(col, inputEl) {
+  document.getElementById('lookup-title').textContent = `F2 快速查詢 ─ ${col}`;
+  document.getElementById('lookup-search').value = '';
+
+  let cols, data;
+
+  if (col === '型號') {
+    cols = ['型號','品名規格','類別','本倉數量'];
+    data = masterData.map(r => ({型號:g(r,'型號'),品名規格:g(r,'品名規格'),類別:g(r,'類別'),本倉數量:g(r,'本倉數量')}));
+  } else {
+    // Unique values for that column
+    const uniq = [...new Set(masterData.map(r => g(r,col)).filter(v => v !== ''))];
+    cols = [col];
+    data = uniq.map(v => ({[col]:v}));
+  }
+
+  lookupAllData = data;
+  buildLookupTable(cols, data, row => {
+    inputEl.value = row[cols[0]];
+    inputEl.dispatchEvent(new Event('change'));
+    // Trigger syncFormToRow if it's a form input
+    syncFormToRow(col, inputEl.value);
+    closeLookup();
+    inputEl.focus();
+  });
+
+  show('lookup-modal');
+  setTimeout(() => document.getElementById('lookup-search').focus(), 50);
+}
+
+function buildLookupTable(cols, data, cb) {
+  const thead = document.getElementById('lookup-thead');
+  const tbody  = document.getElementById('lookup-tbody');
+  thead.innerHTML = cols.map(c => `<th>${c}</th>`).join('');
+  tbody.innerHTML = '';
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = cols.map(c => `<td style="padding:1px 4px;">${row[c]}</td>`).join('');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => cb(row));
+    tr.addEventListener('dblclick', () => cb(row));
+    tbody.appendChild(tr);
+  });
+  lookupCb = cb;
+}
+
+function filterLookup(term) {
+  document.querySelectorAll('#lookup-tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(term.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function closeLookup() { hide('lookup-modal'); }
+
+// ==========================================
+//  SUB TAB SWITCHING
+// ==========================================
+function switchSubTab(tab) {
+  currentSubTab = tab;
+  ['master','warehouse'].forEach(t => {
+    document.getElementById('stab_'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel_'+t).classList.toggle('active', t===tab);
+  });
+  if (tab === 'warehouse') {
+    renderWhLeft();
+    if (selMaster) renderWhMid(selMaster);
+    else {
+      document.getElementById('wh-mid-tbody').innerHTML = '<tr><td colspan="8" class="no-data">請先選擇型號</td></tr>';
+      document.getElementById('wh-right-tbody').innerHTML = '<tr><td colspan="14" class="no-data"></td></tr>';
+    }
+  }
+}
+
+function switchModule(mod) { /* future: multiple modules */ }
+
+// ==========================================
+//  SETTINGS
+// ==========================================
+function openSettings() {
+  document.getElementById('cfg-url').value = CFG.url;
+  document.getElementById('cfg-key').value = CFG.key;
+  document.getElementById('cfg-t1').value  = CFG.t1;
+  document.getElementById('cfg-t2').value  = CFG.t2;
+  document.getElementById('cfg-t3').value  = CFG.t3;
+  show('settings-modal');
+}
+
+function closeSettings() { hide('settings-modal'); }
+
+function saveSettings() {
+  CFG.url = document.getElementById('cfg-url').value.trim();
+  CFG.key = document.getElementById('cfg-key').value.trim();
+  CFG.t1  = document.getElementById('cfg-t1').value.trim() || 'inventory_master';
+  CFG.t2  = document.getElementById('cfg-t2').value.trim() || 'inventory_detail';
+  CFG.t3  = document.getElementById('cfg-t3').value.trim() || 'inventory_storage';
+  localStorage.setItem('erp_url', CFG.url);
+  localStorage.setItem('erp_key', CFG.key);
+  localStorage.setItem('erp_t1',  CFG.t1);
+  localStorage.setItem('erp_t2',  CFG.t2);
+  localStorage.setItem('erp_t3',  CFG.t3);
+  initSB();
+  closeSettings();
+  refreshAll();
+}
+
+async function testConn() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  const t1  = document.getElementById('cfg-t1').value.trim() || 'inventory_master';
+  if (!url || !key) { alert('請先填入 URL 與 Key'); return; }
+  try {
+    const sb = window.supabase.createClient(url, key, {auth:{persistSession:false}});
+    const { data, error } = await sb.from(t1).select('*').limit(1);
+    if (error) throw error;
+    alert(`✅ 連線成功！回傳 ${data ? data.length : 0} 筆測試資料。`);
+  } catch(e) {
+    alert('❌ 連線失敗：\n' + e.message + '\n\n請確認：\n1. URL/Key 是否正確\n2. 資料表名稱是否存在\n3. RLS 是否允許 anon 存取');
+  }
+}
+
+// ==========================================
+//  GLOBAL KEYBOARD SHORTCUTS
+// ==========================================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLookup();
+    closeSettings();
+  }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveChanges(); }
+  if (e.ctrlKey && e.key === 'n') { e.preventDefault(); addRow(); }
+  if (e.ctrlKey && e.key === 'r') { e.preventDefault(); refreshAll(); }
+
+  // Enter in lookup search → select first visible
+  if (e.key === 'Enter' && document.getElementById('lookup-modal').classList.contains('open')) {
+    const firstVis = document.querySelector('#lookup-tbody tr:not([style*="display: none"])');
+    if (firstVis) firstVis.click();
+  }
+});
+
+// Close modals on background click
+document.getElementById('lookup-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLookup();
+});
+document.getElementById('settings-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeSettings();
+});
+
+// ==========================================
+//  INIT
+// ==========================================
+window.addEventListener('load', () => {
+  initSB();
+  if (!CFG.url || !CFG.key) {
+    loadDemoData();
+    setTimeout(openSettings, 600);   // Prompt settings on first load
+  } else {
+    refreshAll();
+  }
+});
+</script>
+</body>
+</html>

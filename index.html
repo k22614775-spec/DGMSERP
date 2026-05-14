@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>誼冠鋼品股份有限公司</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { corePlugins:{ preflight:false } };</script>
+  <!-- 各功能模組為獨立 HTML 檔，透過 iframe 嵌入 -->
+  <!-- 各功能模組為獨立 HTML 檔，透過 iframe 嵌入 -->
+  <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;font-family:'Microsoft YaHei','微軟正黑體',Arial,sans-serif;font-size:12px;color:#000;background:#d4d0c8;}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* ── 系統切換列（ERP/MES 極薄條）── */
+#sys-switcher{display:flex;align-items:center;height:20px;background:#1a3060;color:#8090c0;padding:0 6px;gap:4px;flex-shrink:0;font-size:11px;}
+.sys-switch-btn{background:transparent;border:1px solid #2a4080;color:#8090c0;padding:0 8px;cursor:pointer;height:16px;font-size:10px;font-family:inherit;border-radius:1px;line-height:14px;}
+.sys-switch-btn:hover{background:#243060;color:#c0d0ff;}
+.sys-switch-btn.active{background:#f0f0f0;color:#000080;border-color:#f0f0f0;}
+#sys-switcher .spacer{flex:1;}
+#sys-login-info{font-size:10px;color:#6070a0;}
+
+/* ── ERP / MES 根節點 ── */
+#erp-root{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
+#erp-root.active{display:flex;}
+#mes-root{display:none;flex:1;overflow:hidden;flex-direction:column;}
+#mes-root.active{display:flex;}
+
+/* ── ERP 主選單列 ── */
+#erp-menubar{display:flex;align-items:center;height:22px;background:#d4d0c8;border-bottom:1px solid #808080;box-shadow:inset 0 1px 0 #fff;flex-shrink:0;padding:0 2px;user-select:none;}
+.menu-item{padding:1px 8px;height:20px;line-height:18px;cursor:pointer;white-space:nowrap;border:1px solid transparent;font-size:12px;}
+.menu-item:hover,.menu-item.open{background:#000080;color:#fff;border-color:#000080;}
+.menu-sep{width:1px;height:14px;background:#808080;margin:0 2px;flex-shrink:0;}
+
+/* ── 下拉選單 ── */
+.dropdown-menu{display:none;position:fixed;z-index:500;background:#f0f0f0;border:1px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 4px rgba(0,0,0,.4);min-width:180px;}
+.dropdown-menu.open{display:block;}
+.dd-item{padding:3px 20px 3px 24px;cursor:pointer;white-space:nowrap;}
+.dd-item:hover{background:#000080;color:#fff;}
+.dd-item.disabled{color:#808080;cursor:default;}
+.dd-item.disabled:hover{background:transparent;color:#808080;}
+.dd-sep{height:1px;background:#808080;margin:2px 4px;}
+
+/* ── 工具列 ── */
+#erp-toolbar{display:flex;align-items:center;height:26px;background:#d4d0c8;border-bottom:2px solid #808080;box-shadow:inset 0 1px 0 #fff;flex-shrink:0;padding:2px 4px;gap:1px;}
+#mode-select{height:20px;border:1px solid;border-color:#808080 #fff #fff #808080;background:#fff;padding:0 2px;font-size:11px;margin-right:4px;font-family:inherit;}
+.tb-btn{min-width:20px;height:20px;padding:0 3px;background:#d4d0c8;border:1px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;font-size:11px;font-family:inherit;white-space:nowrap;line-height:18px;user-select:none;}
+.tb-btn:hover{background:#e0dcd8;}
+.tb-btn:active{border-color:#808080 #fff #fff #808080;background:#c8c5be;}
+.tb-sep{width:1px;height:18px;background:#808080;margin:0 3px;flex-shrink:0;}
+.tb-btn-wide{min-width:36px;}
+
+/* ── ERP 主桌面（浮水印）── */
+#erp-desktop{flex:1;position:relative;overflow:hidden;background-color:#ffffff;background-image:repeating-linear-gradient(45deg,#c8dcee 0,#c8dcee 1px,transparent 1px,transparent 141px),repeating-linear-gradient(-45deg,#c8dcee 0,#c8dcee 1px,transparent 1px,transparent 141px);background-size:200px 200px;}
+#erp-desktop::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg opacity='0.5'%3E%3Cpath d='M82 70 h20 a14 14 0 0 1 0 30 H82 Z' fill='%238ab8d8'/%3E%3Crect x='76' y='64' width='5' height='42' fill='%238ab8d8'/%3E%3Ccircle cx='86' cy='58' r='4' fill='%238ab8d8'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-size:200px 200px;}
+
+/* ── 模組區（覆蓋桌面）── */
+#module-area{position:absolute;inset:0;display:none;flex-direction:column;background:#f0f0f0;overflow:hidden;}
+#module-area.active{display:flex;}
+
+/* ── 模組頁籤 ── */
+#module-tabs{display:flex;background:#d4d0c8;border-bottom:2px solid #808080;padding:3px 4px 0;gap:2px;flex-shrink:0;}
+.module-tab{padding:2px 12px;border:1px solid #808080;border-bottom:none;cursor:pointer;background:#b8b4ac;border-radius:3px 3px 0 0;margin-bottom:-2px;color:#333;white-space:nowrap;}
+.module-tab.active{background:#f0f0f0;font-weight:bold;border-bottom:2px solid #f0f0f0;z-index:1;color:#000;}
+.close-x{margin-left:6px;color:#666;font-size:10px;cursor:pointer;}
+.close-x:hover{color:#cc0000;font-weight:bold;}
+
+/* ── 模組面板 ── */
+.module-panel{display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0;}
+.module-panel.active{display:flex;}
+/* iframe 填滿面板（各模組 HTML 直接嵌入）*/
+.module-panel iframe{flex:1;width:100%;height:100%;border:none;display:block;}
+
+/* ── 狀態列 ── */
+#erp-statusbar{display:flex;align-items:center;height:20px;background:#d4d0c8;border-top:2px solid #808080;box-shadow:inset 0 1px 0 #fff;padding:0 8px;gap:0;flex-shrink:0;}
+#status-main{flex:1;font-size:11px;}
+.status-cell{font-size:11px;border-left:1px solid #808080;padding:0 8px;white-space:nowrap;}
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 系統切換列 -->
+  <div id="sys-switcher">
+    <button class="sys-switch-btn active" id="btn-sys-erp" onclick="App.switchSystem('erp')">ERP 後台</button>
+    <button class="sys-switch-btn"        id="btn-sys-mes" onclick="App.switchSystem('mes')">MES 現場</button>
+    <span class="spacer"></span>
+    <span id="sys-login-info">誼冠鋼品股份有限公司 ｜ 登入者：SYSTEM</span>
+  </div>
+
+  <!-- ERP 根節點 -->
+  <div id="erp-root" class="active">
+
+    <!-- 主選單列 -->
+    <div id="erp-menubar">
+      <div class="menu-item" onclick="ERP.toggleMenu('basic',this)">1.基本資料</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('purchase',this)">2.進貨資料</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('sales',this)">3.銷貨資料</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('stock',this)">4.存貨資料</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('invoice',this)">5.發票資料</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('process',this)">6.加工管理</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('chart',this)">7.圖表分析</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('system',this)">8.輔助系統</div>
+      <div class="menu-sep"></div>
+      <div class="menu-item" onclick="ERP.toggleMenu('window',this)">9.視窗</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('help',this)">A.說明</div>
+      <div class="menu-item" onclick="ERP.toggleMenu('web',this)">B.網址連結</div>
+    </div>
+
+    <!-- 下拉選單群組（固定定位，由 JS 動態設置座標）-->
+    <div class="dropdown-menu" id="dd-basic">
+      <div class="dd-item" onclick="ERP.openModule('customer')">客戶資料</div>
+      <div class="dd-item" onclick="ERP.openModule('vendor')">廠商資料</div>
+      <div class="dd-item" onclick="ERP.openModule('inventory-master')">庫存主檔</div>
+      <div class="dd-item" onclick="ERP.openModule('bom')">產品結構（BOM）</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('warehouse-cfg')">倉庫設定</div>
+      <div class="dd-item" onclick="ERP.openModule('unit-cfg')">單位設定</div>
+    </div>
+    <div class="dropdown-menu" id="dd-purchase">
+      <div class="dd-item" onclick="ERP.openModule('purchase-order')">採購單</div>
+      <div class="dd-item" onclick="ERP.openModule('goods-receipt')">進貨單</div>
+      <div class="dd-item" onclick="ERP.openModule('purchase-return')">進貨退出</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('purchase-report')">進貨報表</div>
+    </div>
+    <div class="dropdown-menu" id="dd-sales">
+      <div class="dd-item" onclick="ERP.openModule('sales-order')">銷貨訂單</div>
+      <div class="dd-item" onclick="ERP.openModule('sales-delivery')">銷貨出貨</div>
+      <div class="dd-item" onclick="ERP.openModule('sales-return')">銷貨退回</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('sales-report')">銷貨報表</div>
+    </div>
+    <div class="dropdown-menu" id="dd-stock">
+      <div class="dd-item" onclick="ERP.openModule('inventory')">庫存管理</div>
+      <div class="dd-item" onclick="ERP.openModule('stock-in')">入庫作業</div>
+      <div class="dd-item" onclick="ERP.openModule('stock-out')">出庫作業</div>
+      <div class="dd-item" onclick="ERP.openModule('stock-transfer')">調撥作業</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('stocktake')">盤點作業</div>
+      <div class="dd-item" onclick="ERP.openModule('stock-report')">存貨報表</div>
+    </div>
+    <div class="dropdown-menu" id="dd-invoice">
+      <div class="dd-item" onclick="ERP.openModule('invoice-sales')">銷項發票</div>
+      <div class="dd-item" onclick="ERP.openModule('invoice-purchase')">進項發票</div>
+      <div class="dd-item" onclick="ERP.openModule('invoice-report')">發票報表</div>
+    </div>
+    <div class="dropdown-menu" id="dd-process">
+      <div class="dd-item" onclick="ERP.openModule('work-order')">工單管理</div>
+      <div class="dd-item" onclick="ERP.openModule('outsource')">委外管理</div>
+      <div class="dd-item" onclick="ERP.openModule('dispatch')">派工管理</div>
+    </div>
+    <div class="dropdown-menu" id="dd-chart">
+      <div class="dd-item" onclick="ERP.openModule('chart-sales')">銷貨分析</div>
+      <div class="dd-item" onclick="ERP.openModule('chart-stock')">庫存分析</div>
+      <div class="dd-item" onclick="ERP.openModule('chart-purchase')">採購分析</div>
+    </div>
+    <div class="dropdown-menu" id="dd-system">
+      <div class="dd-item" onclick="ERP.openModule('settings')">系統設定</div>
+      <div class="dd-item" onclick="ERP.openModule('user-mgmt')">帳號管理</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('backup')">資料備份</div>
+    </div>
+    <div class="dropdown-menu" id="dd-window">
+      <div class="dd-item" onclick="ERP.closeAllModules()">關閉所有視窗</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item disabled" id="dd-window-list">（目前無開啟視窗）</div>
+    </div>
+    <div class="dropdown-menu" id="dd-help">
+      <div class="dd-item" onclick="ERP.openModule('about')">關於本系統</div>
+      <div class="dd-item" onclick="ERP.openModule('manual')">操作手冊</div>
+    </div>
+    <div class="dropdown-menu" id="dd-web">
+      <div class="dd-item" onclick="window.open('https://supabase.com','_blank')">Supabase 管理後台</div>
+    </div>
+
+    <!-- 工具列 -->
+    <div id="erp-toolbar">
+      <select id="mode-select" title="切換進銷存模式">
+        <option>進銷存</option><option>製造</option><option>工程</option>
+      </select>
+      <!-- 基本資料 -->
+      <button class="tb-btn" title="客戶資料"   onclick="ERP.openModule('customer')">客</button>
+      <button class="tb-btn" title="廠商資料"   onclick="ERP.openModule('vendor')">廠</button>
+      <button class="tb-btn" title="庫存管理"   onclick="ERP.openModule('inventory')">庫</button>
+      <button class="tb-btn" title="報價詢問"   onclick="ERP.openModule('inquiry')">詢</button>
+      <button class="tb-btn" title="採購單"     onclick="ERP.openModule('purchase-order')">採</button>
+      <div class="tb-sep"></div>
+      <!-- 進貨 -->
+      <button class="tb-btn" title="進貨單"     onclick="ERP.openModule('goods-receipt')">進</button>
+      <button class="tb-btn" title="進貨退出"   onclick="ERP.openModule('purchase-return')">進<sup style="font-size:8px">退</sup></button>
+      <button class="tb-btn" title="進貨費用"   onclick="ERP.openModule('purchase-cost')">進<sup style="font-size:8px">費</sup></button>
+      <button class="tb-btn" title="費用單"     onclick="ERP.openModule('expense')">費</button>
+      <button class="tb-btn" title="報表"       onclick="ERP.openModule('report')">報</button>
+      <div class="tb-sep"></div>
+      <!-- 銷貨 -->
+      <button class="tb-btn" title="銷貨訂單"   onclick="ERP.openModule('sales-order')">訂</button>
+      <button class="tb-btn" title="銷貨出貨"   onclick="ERP.openModule('sales-delivery')">銷</button>
+      <button class="tb-btn" title="銷貨退回"   onclick="ERP.openModule('sales-return')">銷<sup style="font-size:8px">退</sup></button>
+      <button class="tb-btn" title="銷貨發票"   onclick="ERP.openModule('sales-invoice')">銷<sup style="font-size:8px">發</sup></button>
+      <div class="tb-sep"></div>
+      <!-- 倉儲 -->
+      <button class="tb-btn" title="入庫作業"   onclick="ERP.openModule('stock-in')">入</button>
+      <button class="tb-btn" title="領料作業"   onclick="ERP.openModule('issue')">領</button>
+      <button class="tb-btn" title="盤點作業"   onclick="ERP.openModule('stocktake')">盤</button>
+      <button class="tb-btn" title="月結存量"   onclick="ERP.openModule('monthly-stock')">月</button>
+      <div class="tb-sep"></div>
+      <!-- 發票 -->
+      <button class="tb-btn" title="銷項發票"   onclick="ERP.openModule('invoice-sales')">發</button>
+      <button class="tb-btn" title="進項發票"   onclick="ERP.openModule('invoice-purchase')">發<sup style="font-size:8px">進</sup></button>
+      <button class="tb-btn" title="發票作廢"   onclick="ERP.openModule('invoice-void')">發<sup style="font-size:8px">廢</sup></button>
+      <button class="tb-btn" title="發票彙整"   onclick="ERP.openModule('invoice-summary')">發<sup style="font-size:8px">彙</sup></button>
+      <div class="tb-sep"></div>
+      <!-- 加工/委外 -->
+      <button class="tb-btn" title="調撥作業"   onclick="ERP.openModule('stock-transfer')">調</button>
+      <button class="tb-btn" title="委外發料"   onclick="ERP.openModule('outsource-issue')">委</button>
+      <button class="tb-btn" title="委外回收"   onclick="ERP.openModule('outsource-return')">委<sup style="font-size:8px">回</sup></button>
+      <button class="tb-btn" title="派工管理"   onclick="ERP.openModule('dispatch')">派</button>
+      <button class="tb-btn" title="回廠作業"   onclick="ERP.openModule('return-factory')">回</button>
+      <div class="tb-sep"></div>
+      <!-- 系統 -->
+      <button class="tb-btn" title="重新整理"   onclick="ERP.refresh()">↺</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn tb-btn-wide" title="壓縮計算" onclick="ERP.openModule('compress')">壓計</button>
+      <button class="tb-btn tb-btn-wide" title="預覽列印" onclick="ERP.openModule('print-preview')">預印</button>
+      <button class="tb-btn" title="系統訊息"   onclick="ERP.openModule('messages')">訊</button>
+    </div>
+
+    <!-- ERP 主桌面 -->
+    <div id="erp-desktop">
+      <div id="module-area">
+        <div id="module-tabs"></div>
+        <div id="module-panels"></div>
+      </div>
+    </div>
+
+    <!-- 狀態列 -->
+    <div id="erp-statusbar">
+      <span id="status-main">就緒　· 請從選單或工具列開啟功能</span>
+      <span class="status-cell" id="status-module">無開啟模組</span>
+      <span class="status-cell" id="status-user">SYSTEM</span>
+      <span class="status-cell" id="status-date"></span>
+    </div>
+
+  </div><!-- /#erp-root -->
+
+  <!-- MES 根節點（React，Phase N）-->
+  <div id="mes-root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#808080;font-size:14px;flex-direction:column;gap:8px;">
+      <div style="font-size:36px;">🏭</div>
+      <div>MES 現場端模組開發中…</div>
+      <div style="font-size:11px;color:#aaa;">（Phase N：React 組件將掛載於此）</div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- 各功能模組皆為獨立 HTML 檔，由 iframe 嵌入，此處無需額外引入 -->
+
+<script>
+/* ══════════════════════════════════════════════════════
+   App：頂層系統切換（ERP ↔ MES）
+   ══════════════════════════════════════════════════════ */
+const App = (() => {
+  const _inited = new Set();
+  const SYS = {
+    erp:{ rootId:'erp-root', btnId:'btn-sys-erp', boot:()=>ERP.boot() },
+    mes:{ rootId:'mes-root', btnId:'btn-sys-mes', boot:()=>window.MES?.init() },
+  };
+  let _cur = 'erp';
+  function switchSystem(s){
+    if(s===_cur) return; _cur=s;
+    Object.entries(SYS).forEach(([k,m])=>{
+      document.getElementById(m.rootId).classList.toggle('active',k===s);
+      document.getElementById(m.btnId ).classList.toggle('active',k===s);
+    });
+    if(!_inited.has(s)){ _inited.add(s); SYS[s].boot(); }
+  }
+  function boot(){ _inited.add('erp'); ERP.boot(); }
+  return { switchSystem, boot };
+})();
+
+/* ══════════════════════════════════════════════════════
+   ERP：主桌面控制器
+   職責：選單展開、工具列、模組開關。不含業務邏輯。
+   ══════════════════════════════════════════════════════ */
+const ERP = (() => {
+
+  /* ──────────────────────────────────────────────────
+     模組登錄表
+     已建立的模組：指定對應的 loader function
+     尚未建立的模組：使用 placeholder（顯示施工中畫面）
+     新增模組只需：1) 建立 XXX.html  2) 加一條 loader
+  ────────────────────────────────────────────────── */
+  const REG = {
+    // ── 已建立 ──────────────────────────────────────
+    'inventory'        :{ label:'庫存管理',   load: loadInventory },
+
+    // ── 基本資料（待建立）────────────────────────────
+    'customer'         :{ label:'客戶資料',   load: loadCustomer },
+    'vendor'           :{ label:'廠商資料',   load: loadVendor },
+
+    // ── 採購（待建立）────────────────────────────────
+    'purchase-order'   :{ label:'採購單',     load: loadPurchaseOrder },
+    'goods-receipt'    :{ label:'進貨單',     load: loadGoodsReceipt },
+    'purchase-return'  :{ label:'進貨退出',   load: placeholder },
+    'purchase-report'  :{ label:'進貨報表',   load: placeholder },
+
+    // ── 銷貨（待建立）────────────────────────────────
+    'sales-order'      :{ label:'銷貨訂單',   load: loadSalesOrder },
+    'sales-delivery'   :{ label:'銷貨出貨',   load: placeholder },
+    'sales-return'     :{ label:'銷貨退回',   load: placeholder },
+    'sales-report'     :{ label:'銷貨報表',   load: placeholder },
+
+    // ── 庫存（待建立）────────────────────────────────
+    'stock-in'         :{ label:'入庫作業',   load: loadStockIn },
+    'stock-out'        :{ label:'出庫作業',   load: loadStockOut },
+    'stock-transfer'   :{ label:'調撥作業',   load: placeholder },
+    'stocktake'        :{ label:'盤點作業',   load: loadStocktake },
+    'stock-report'     :{ label:'存貨報表',   load: placeholder },
+
+    // ── 發票（待建立）────────────────────────────────
+    'invoice-sales'    :{ label:'銷項發票',   load: placeholder },
+    'invoice-purchase' :{ label:'進項發票',   load: placeholder },
+    'invoice-report'   :{ label:'發票報表',   load: placeholder },
+
+    // ── 生產（待建立）────────────────────────────────
+    'work-order'       :{ label:'工單管理',   load: placeholder },
+    'outsource'        :{ label:'委外管理',   load: placeholder },
+    'dispatch'         :{ label:'派工管理',   load: placeholder },
+
+    // ── 分析（待建立）────────────────────────────────
+    'chart-sales'      :{ label:'銷貨分析',   load: placeholder },
+    'chart-stock'      :{ label:'庫存分析',   load: placeholder },
+    'chart-purchase'   :{ label:'採購分析',   load: placeholder },
+
+    // ── 系統 ─────────────────────────────────────────
+    'settings'         :{ label:'系統設定',   load: placeholder },
+    'about'            :{ label:'關於本系統', load: aboutPanel  },
+  };
+
+  const _open = new Map();   // key -> {tab, panel}
+  let _active = null;
+
+  /* ─ openModule ─────────────────────────────────────── */
+  function openModule(key){
+    closeAllMenus();
+    const reg = REG[key];
+    if(!reg){ setStatus('❌ 模組 ['+key+'] 尚未實作'); return; }
+    if(_open.has(key)){ activateModule(key); return; }
+
+    // 建頁籤
+    const tab = document.createElement('div');
+    tab.className='module-tab'; tab.dataset.key=key;
+    tab.innerHTML=reg.label+'<span class="close-x" onclick="event.stopPropagation();ERP.closeModule(\''+key+'\')">✕</span>';
+    tab.addEventListener('click',()=>activateModule(key));
+    document.getElementById('module-tabs').appendChild(tab);
+
+    // 建面板
+    const panel = document.createElement('div');
+    panel.className='module-panel'; panel.dataset.key=key;
+    panel.style.cssText='flex:1;overflow:hidden;flex-direction:column;min-height:0;';
+    document.getElementById('module-panels').appendChild(panel);
+
+    _open.set(key,{tab,panel});
+    document.getElementById('module-area').classList.add('active');
+    activateModule(key);
+    reg.load(panel, reg.label);
+    updateWindowMenu();
+  }
+
+  function activateModule(key){
+    _active=key;
+    _open.forEach(({tab,panel},k)=>{
+      tab.classList.toggle('active',k===key);
+      panel.classList.toggle('active',k===key);
+    });
+    document.getElementById('status-module').textContent=REG[key]?.label||key;
+  }
+
+  function closeModule(key){
+    const m=_open.get(key); if(!m) return;
+    m.tab.remove(); m.panel.remove(); _open.delete(key);
+    if(_open.size===0){
+      document.getElementById('module-area').classList.remove('active');
+      document.getElementById('status-module').textContent='無開啟模組';
+      _active=null;
+    } else { activateModule([..._open.keys()].pop()); }
+    updateWindowMenu();
+  }
+
+  function closeAllModules(){ [..._open.keys()].forEach(closeModule); }
+
+  function updateWindowMenu(){
+    const el=document.getElementById('dd-window-list');
+    if(!el) return;
+    if(_open.size===0){ el.textContent='（目前無開啟視窗）'; el.className='dd-item disabled'; return; }
+    el.innerHTML=''; el.className='';
+    _open.forEach((_,k)=>{
+      const d=document.createElement('div'); d.className='dd-item';
+      d.textContent='✓ '+(REG[k]?.label||k);
+      d.onclick=()=>{ activateModule(k); closeAllMenus(); };
+      el.parentNode.insertBefore(d,el);
+    });
+    el.remove();
+  }
+
+  /* ─ 選單 ──────────────────────────────────────────── */
+  function toggleMenu(name,el){
+    const dd=document.getElementById('dd-'+name); if(!dd) return;
+    const isOpen=dd.classList.contains('open');
+    closeAllMenus();
+    if(!isOpen){
+      const r=el.getBoundingClientRect();
+      dd.style.left=r.left+'px'; dd.style.top=r.bottom+'px';
+      dd.classList.add('open'); el.classList.add('open');
+    }
+  }
+  function closeAllMenus(){
+    document.querySelectorAll('.dropdown-menu.open').forEach(d=>d.classList.remove('open'));
+    document.querySelectorAll('.menu-item.open').forEach(i=>i.classList.remove('open'));
+  }
+
+  /* ─ 其他 ──────────────────────────────────────────── */
+  function refresh(){ setStatus('↺ 重新整理'); window.ERPInventory?.refresh?.(); }
+  function setStatus(msg){ document.getElementById('status-main').textContent=msg; }
+
+  /* ─ 模組 Loader ───────────────────────────────────────
+     架構：一個功能 = 一個 HTML 檔，以 iframe 嵌入面板
+     新增模組：在 REG 加一條 { label, src } 即可
+  ─────────────────────────────────────────────────── */
+
+  /**
+   * 通用 iframe 載入器
+   * @param {HTMLElement} panel - 模組面板 div
+   * @param {string}      src   - HTML 檔路徑（相對於 index.html）
+   */
+  function iframeLoad(panel, src){
+    const iframe = document.createElement('iframe');
+    iframe.src = src;
+    iframe.title = src;
+    // 讓子頁面知道自己被嵌入（可選用）
+    iframe.setAttribute('data-erp-frame','1');
+    panel.appendChild(iframe);
+  }
+
+  /** 尚未建立的模組顯示施工中畫面 */
+  function placeholder(panel, label){
+    panel.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;
+      height:100%;flex-direction:column;gap:8px;color:#808080;">
+      <div style="font-size:36px;">🚧</div>
+      <div style="font-size:14px;font-weight:bold;">${label}</div>
+      <div style="font-size:11px;">此模組尚未建立</div></div>`;
+  }
+
+  /** 各模組對應的 HTML 檔 */
+  function loadInventory(panel)       { iframeLoad(panel,'庫存管理.html'); }
+  function loadSalesOrder(panel)      { iframeLoad(panel,'銷貨訂單.html'); }
+  function loadPurchaseOrder(panel)   { iframeLoad(panel,'採購單.html'); }
+  function loadGoodsReceipt(panel)    { iframeLoad(panel,'進貨單.html'); }
+  function loadStockIn(panel)         { iframeLoad(panel,'入庫作業.html'); }
+  function loadStockOut(panel)        { iframeLoad(panel,'出庫作業.html'); }
+  function loadStocktake(panel)       { iframeLoad(panel,'盤點作業.html'); }
+  function loadCustomer(panel)        { iframeLoad(panel,'客戶資料.html'); }
+  function loadVendor(panel)          { iframeLoad(panel,'廠商資料.html'); }
+
+  function aboutPanel(panel){
+    panel.innerHTML=`<div style="padding:24px;color:#000;font-size:12px;">
+      <h2 style="color:#000080;margin-bottom:12px;">誼冠鋼品 ERP/MES 整合系統</h2>
+      <table style="border-collapse:collapse;">
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;white-space:nowrap;">公司</td><td>誼冠鋼品股份有限公司</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">架構</td><td>Shell + 獨立 HTML 模組（iframe 嵌入）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">後端</td><td>Supabase（PostgreSQL + PostgREST）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">前端</td><td>Vanilla JS · 單一 HTML 檔 per 模組</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">已完成</td><td>庫存管理（庫存管理.html）</td></tr>
+        <tr><td style="padding:3px 16px 3px 0;color:#000080;font-weight:bold;">進行中</td><td>各功能模組逐一建立</td></tr>
+      </table>
+      <div style="margin-top:16px;padding:8px;background:#f0f0f0;border:1px solid #c0c0c0;color:#606060;font-size:11px;">
+        新增模組方式：建立 <b>功能名稱.html</b> → 在 index.html REG 加一條 loader 即可
+      </div></div>`;
+  }
+
+  /* ─ 啟動 ──────────────────────────────────────────── */
+  function boot(){
+    const d=new Date();
+    document.getElementById('status-date').textContent=
+      d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0');
+    setStatus('就緒 · 請從選單或工具列開啟功能模組');
+  }
+
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.menu-item')&&!e.target.closest('.dropdown-menu')) closeAllMenus();
+  });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAllMenus(); });
+
+  return { boot, openModule, closeModule, closeAllModules, toggleMenu, refresh, setStatus };
+})();
+
+document.addEventListener('DOMContentLoaded', ()=>App.boot());
+</script>
+</body>
+</html>
