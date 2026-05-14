@@ -62,7 +62,19 @@ html,body{height:100%;overflow:hidden;background:#f0f0f0;color:#000;}
   border-bottom:2px solid #808080;
 }
 .frow{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;margin-bottom:2px;}
-.flabel{color:#000080;font-weight:bold;white-space:nowrap;}
+.flabel{color:#000080;font-weight:bold;white-space:nowrap;padding-left:6px;}
+.flabel.req{color:#cc0000;}   /* 必填欄位紅色 */
+.flabel:first-child{padding-left:0;}
+/* [...] 查詢按鈕 */
+.fbtn{
+  background:#d4d0c8;
+  border:1px solid;border-color:#fff #808080 #808080 #fff;
+  width:20px;height:17px;cursor:pointer;
+  font-size:10px;padding:0;margin:0 2px 0 1px;
+  flex-shrink:0;line-height:15px;
+}
+.fbtn:hover{background:#dedad4;}
+.fbtn:active{border-color:#808080 #fff #fff #808080;background:#c8c5be;}
 .finput{
   background:#ffffff;
   border-top:1px solid #808080;border-left:1px solid #808080;
@@ -277,101 +289,132 @@ select.finput{height:18px;padding:0 2px;}
     <span id="dirty-flag">● 有未儲存的變更</span>
   </div>
 
-  <!-- Form Panel -->
+  <!-- Form Panel（9列4欄，對齊參考截圖）-->
   <div id="form-panel">
+    <!-- 列1：型號* 品名規格* 銷貨品名 類別 -->
     <div class="frow">
-      <span class="flabel">型號</span>
-      <input class="finput" id="f_型號" style="width:80px" readonly tabindex="-1">
-      <span class="flabel" style="margin-left:16px;">品名規格</span>
-      <input class="finput" id="f_品名規格" style="width:200px" oninput="syncFormToRow('品名規格',this.value)">
-      <span style="flex:1"></span>
+      <span class="flabel req">型號</span>
+      <input class="finput" id="f_型號" style="width:120px" readonly tabindex="-1">
+      <span class="flabel req">品名規格</span>
+      <input class="finput" id="f_品名規格" style="width:210px" oninput="syncFormToRow('品名規格',this.value)">
+      <span class="flabel">銷貨品名</span>
+      <input class="finput" id="f_銷貨品名" style="width:150px" oninput="syncFormToRow('銷貨品名',this.value)">
       <span class="flabel">類別</span>
-      <input class="finput" id="f_類別" style="width:70px" oninput="syncFormToRow('類別',this.value)">
+      <input class="finput" id="f_類別" style="width:80px" oninput="syncFormToRow('類別',this.value)">
+      <button class="fbtn" onclick="openLookup('類別',document.getElementById('f_類別'))">…</button>
     </div>
+    <!-- 列2：材質編號 廠別 尺寸(厚×寬×長) 顏色 -->
     <div class="frow">
       <span class="flabel">材質編號</span>
       <input class="finput" id="f_材質編號" style="width:80px" oninput="syncFormToRow('材質編號',this.value)">
-      <span class="flabel" style="margin-left:8px;">排別</span>
-      <input class="finput" id="f_成本類別" style="width:60px" oninput="syncFormToRow('成本類別',this.value)">
-      <span class="flabel" style="margin-left:8px;">尺寸</span>
+      <button class="fbtn" onclick="openLookup('材質編號',document.getElementById('f_材質編號'))">…</button>
+      <span class="flabel">廠別</span>
+      <input class="finput" id="f_廠別編號" style="width:80px" oninput="syncFormToRow('廠別編號',this.value)">
+      <button class="fbtn" onclick="openLookup('廠別編號',document.getElementById('f_廠別編號'))">…</button>
+      <span class="flabel">尺寸</span>
       <input class="finput" id="f_厚度" style="width:52px" oninput="syncFormToRow('厚度',this.value)">
-      <span class="fdivider">×</span>
-      <input class="finput" id="f_寬度" style="width:52px" oninput="syncFormToRow('寬度',this.value)">
-      <span class="fdivider">×</span>
+      <span class="fdivider">x</span>
+      <input class="finput" id="f_寬度" style="width:58px" oninput="syncFormToRow('寬度',this.value)">
+      <span class="fdivider">x</span>
       <input class="finput" id="f_長度" style="width:52px" oninput="syncFormToRow('長度',this.value)">
-      <span class="flabel" style="margin-left:8px;">顏色</span>
-      <input class="finput" id="f_顏色" style="width:70px" oninput="syncFormToRow('顏色',this.value)">
-      <span class="flabel" style="margin-left:8px;">漆種</span>
-      <input class="finput" id="f_漆種" style="width:70px" oninput="syncFormToRow('漆種',this.value)">
+      <span class="flabel">顏色</span>
+      <input class="finput" id="f_顏色" style="width:80px" oninput="syncFormToRow('顏色',this.value)">
+      <button class="fbtn" onclick="openLookup('顏色',document.getElementById('f_顏色'))">…</button>
     </div>
+    <!-- 列3：漆種 正面漆種 背面漆種 色碼(顯示用) -->
     <div class="frow">
-      <span class="flabel">緒薄</span>
-      <input class="finput" id="f_管厚" style="width:60px" oninput="syncFormToRow('管厚',this.value)">
-      <span class="flabel" style="margin-left:8px;">抗拉強度</span>
-      <input class="finput" id="f_抗拉強度" style="width:80px" oninput="syncFormToRow('抗拉強度',this.value)">
-      <span class="flabel" style="margin-left:8px;">單位</span>
-      <input class="finput" id="f_單位" style="width:50px" oninput="syncFormToRow('單位',this.value)">
-      <span class="flabel" style="margin-left:8px;">本倉數量</span>
-      <input class="finput" id="f_本倉數量" style="width:70px" readonly tabindex="-1">
-      <span class="fdivider">0</span>
-      <span class="flabel">本倉總數</span>
-      <input class="finput" id="f_本倉總數" style="width:80px" readonly tabindex="-1">
+      <span class="flabel">漆種</span>
+      <input class="finput" id="f_漆種" style="width:80px" oninput="syncFormToRow('漆種',this.value)">
+      <span class="flabel">正面漆種</span>
+      <input class="finput" id="f_正面漆種" style="width:110px" oninput="syncFormToRow('正面漆種',this.value)">
+      <span class="flabel">背面漆種</span>
+      <input class="finput" id="f_背面漆種" style="width:110px" oninput="syncFormToRow('背面漆種',this.value)">
+      <span class="flabel">色碼</span>
+      <input class="finput" id="f_色碼" style="width:80px" readonly tabindex="-1" title="色碼">
     </div>
+    <!-- 列4：正面漆膜厚 背面漆膜厚 鍍層 強度 -->
+    <div class="frow">
+      <span class="flabel">正面漆膜厚</span>
+      <input class="finput" id="f_正面漆膜厚" style="width:70px" oninput="syncFormToRow('正面漆膜厚',this.value)">
+      <span class="flabel">背面漆膜厚</span>
+      <input class="finput" id="f_背面漆膜厚" style="width:70px" oninput="syncFormToRow('背面漆膜厚',this.value)">
+      <span class="flabel">鍍層</span>
+      <input class="finput" id="f_鍍層" style="width:80px" oninput="syncFormToRow('鍍層',this.value)">
+      <button class="fbtn" onclick="openLookup('鍍層',document.getElementById('f_鍍層'))">…</button>
+      <span class="flabel">強度</span>
+      <input class="finput" id="f_抗拉強度" style="width:80px" oninput="syncFormToRow('抗拉強度',this.value)">
+      <button class="fbtn" onclick="openLookup('抗拉強度',document.getElementById('f_抗拉強度'))">…</button>
+    </div>
+    <!-- 列5：包裝方式 單位 本倉數量 本倉總數 -->
+    <div class="frow">
+      <span class="flabel">包裝方式</span>
+      <input class="finput" id="f_包裝方式" style="width:80px" oninput="syncFormToRow('包裝方式',this.value)">
+      <span class="flabel">單位</span>
+      <input class="finput" id="f_單位" style="width:52px" oninput="syncFormToRow('單位',this.value)">
+      <span class="flabel">本倉數量</span>
+      <input class="finput" id="f_本倉數量" style="width:80px" readonly tabindex="-1">
+      <span class="flabel">本倉總數</span>
+      <input class="finput" id="f_本倉總數" style="width:100px" readonly tabindex="-1">
+    </div>
+    <!-- 列6：寄倉數量 寄倉總數 公式 單位重 -->
     <div class="frow">
       <span class="flabel">寄倉數量</span>
-      <input class="finput" id="f_寄倉數量" style="width:70px" readonly tabindex="-1">
-      <span class="fdivider">0</span>
+      <input class="finput" id="f_寄倉數量" style="width:80px" readonly tabindex="-1">
       <span class="flabel">寄倉總數</span>
-      <input class="finput" id="f_寄倉總數" style="width:80px" readonly tabindex="-1">
-      <span class="flabel" style="margin-left:8px;">公式</span>
+      <input class="finput" id="f_寄倉總數" style="width:100px" readonly tabindex="-1">
+      <span class="flabel">公式</span>
       <input class="finput" id="f_公式編號" style="width:60px" oninput="syncFormToRow('公式編號',this.value)">
-      <span class="flabel" style="margin-left:8px;">單位量</span>
-      <input class="finput" id="f_單位重" style="width:70px" oninput="syncFormToRow('單位重',this.value)">
-      <span class="flabel" style="margin-left:8px;">比重</span>
-      <input class="finput" id="f_密度" style="width:60px" oninput="syncFormToRow('密度',this.value)">
+      <span class="flabel">單位重</span>
+      <input class="finput" id="f_單位重" style="width:80px" oninput="syncFormToRow('單位重',this.value)">
     </div>
+    <!-- 列7：比重 成本基準 進價 金額 -->
     <div class="frow">
+      <span class="flabel">比重</span>
+      <input class="finput" id="f_密度" style="width:70px" oninput="syncFormToRow('密度',this.value)">
       <span class="flabel">成本基準</span>
-      <select class="finput" id="f_成本基準" style="width:80px" onchange="syncFormToRow('成本基準',this.value)">
-        <option value="1">1 總數</option>
-        <option value="2">2 數量</option>
-        <option value="3">3 其他</option>
+      <select class="finput" id="f_成本基準" style="width:90px" onchange="syncFormToRow('成本基準',this.value)">
+        <option value="1">1.總數</option>
+        <option value="2">2.數量</option>
+        <option value="3">3.其他</option>
       </select>
-      <span class="flabel" style="margin-left:8px;">逾價</span>
-      <input class="finput" id="f_進價" style="width:70px" oninput="syncFormToRow('進價',this.value)">
-      <span class="flabel" style="margin-left:8px;">金額</span>
-      <input class="finput" id="f_金額" style="width:80px" readonly tabindex="-1">
-      <span class="flabel" style="margin-left:8px;">發票型號</span>
-      <input class="finput" id="f_發票型號" style="width:110px" oninput="syncFormToRow('發票型號',this.value)">
-      <span class="flabel" style="margin-left:8px;">售價</span>
-      <input class="finput" id="f_售價" style="width:70px" oninput="syncFormToRow('售價',this.value)">
+      <span class="flabel">進價</span>
+      <input class="finput" id="f_進價" style="width:80px" oninput="syncFormToRow('進價',this.value)">
+      <span class="flabel">金額</span>
+      <input class="finput" id="f_金額" style="width:100px" readonly tabindex="-1">
     </div>
+    <!-- 列8：發票型號 售價 異動日期 備註 -->
     <div class="frow">
-      <span class="flabel">安全數量</span>
-      <input class="finput" id="f_安全數量" style="width:70px" oninput="syncFormToRow('安全數量',this.value)">
-      <span class="fdivider">0</span>
-      <span class="flabel">安全總數</span>
-      <input class="finput" id="f_安全總數" style="width:80px" oninput="syncFormToRow('安全總數',this.value)">
-      <span class="fdivider">0.00</span>
-      <span class="flabel" style="margin-left:8px;">異動日期</span>
+      <span class="flabel">發票型號</span>
+      <input class="finput" id="f_發票型號" style="width:120px" oninput="syncFormToRow('發票型號',this.value)">
+      <span class="flabel">售價</span>
+      <input class="finput" id="f_售價" style="width:80px" oninput="syncFormToRow('售價',this.value)">
+      <span class="flabel">異動日期</span>
       <input class="finput" id="f_異動日期" style="width:110px" readonly tabindex="-1">
-      <span class="flabel" style="margin-left:8px;">預設倉號</span>
-      <input class="finput" id="f_預設倉號" style="width:60px" oninput="syncFormToRow('預設倉號',this.value)">
-      <span class="flabel" style="margin-left:8px;">庫存控管</span>
-      <input class="finput" id="f_庫存控管" style="width:50px" oninput="syncFormToRow('庫存控管',this.value)">
-      <span class="flabel" style="margin-left:8px;">批號控管</span>
-      <input class="finput" id="f_批號控管" style="width:50px" oninput="syncFormToRow('批號控管',this.value)">
-    </div>
-    <div class="frow">
       <span class="flabel">備註</span>
-      <input class="finput" id="f_備註" style="width:360px" oninput="syncFormToRow('備註',this.value)">
+      <input class="finput" id="f_備註" style="width:200px" oninput="syncFormToRow('備註',this.value)">
+    </div>
+    <!-- 列9：建檔日期 庫存管控YN 預設倉號 批號控管 -->
+    <div class="frow">
+      <span class="flabel">建檔日期</span>
+      <input class="finput" id="f_建檔日期" style="width:110px" readonly tabindex="-1">
+      <span class="flabel">庫存管控YN</span>
+      <select class="finput" id="f_庫存控管" style="width:90px" onchange="syncFormToRow('庫存控管',this.value)">
+        <option value="Y">Y.是</option>
+        <option value="N">N.否</option>
+        <option value="">（未設定）</option>
+      </select>
+      <span class="flabel">預設倉號</span>
+      <input class="finput" id="f_預設倉號" style="width:60px" oninput="syncFormToRow('預設倉號',this.value)">
+      <span class="flabel">批號控管</span>
+      <input class="finput" id="f_批號控管" style="width:50px" oninput="syncFormToRow('批號控管',this.value)">
     </div>
   </div>
 
   <!-- Sub Tabs -->
   <div id="sub-tabs">
-    <div class="sub-tab active" id="stab_master" onclick="switchSubTab('master')">庫存主檔</div>
-    <div class="sub-tab" id="stab_warehouse" onclick="switchSubTab('warehouse')">倉庫存量</div>
+    <div class="sub-tab active" id="stab_master"    onclick="switchSubTab('master')">庫存主檔</div>
+    <div class="sub-tab"        id="stab_warehouse" onclick="switchSubTab('warehouse')">倉庫存量</div>
+    <div class="sub-tab"        id="stab_lot"       onclick="switchSubTab('lot')">批號明細</div>
   </div>
 
   <!-- ===== TAB: 庫存主檔 ===== -->
@@ -452,6 +495,32 @@ select.finput{height:18px;padding:0 2px;}
           </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: 批號明細 ===== -->
+  <div class="tab-panel" id="panel_lot">
+    <div id="lot-grid-wrap" style="flex:1;overflow:auto;background:#fffff0;">
+      <table class="data-grid" id="lot-grid">
+        <thead>
+          <tr>
+            <th style="min-width:28px;">#</th>
+            <th style="min-width:100px;">型號</th>
+            <th style="min-width:80px;">倉庫編號</th>
+            <th style="min-width:100px;">批號</th>
+            <th style="min-width:80px;">數量</th>
+            <th style="min-width:80px;">總數</th>
+            <th style="min-width:70px;">長度M</th>
+            <th style="min-width:90px;">異動日期</th>
+            <th style="min-width:120px;">備註</th>
+          </tr>
+        </thead>
+        <tbody id="lot-tbody">
+          <tr><td colspan="9" class="no-data" style="text-align:center;padding:12px;color:#888;font-style:italic;">
+            請先選取型號，再切換至批號明細頁
+          </td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -586,17 +655,24 @@ let lookupCb     = null;
 // ==========================================
 // Full set of columns to show in the main grid (ordered by importance)
 const MASTER_COLS = [
-  '型號','品名規格','厚度','寬度','長度',
-  '公式編號','單位重','密度',
-  '本倉數量','本倉總數','進價','金額',
-  '寄倉數量','寄倉總數',
-  '材質編號','單位','成本基準','異動日期','備註',
-  '發票型號','安全數量','安全總數',
-  '類別','顏色','漆種','鍍層','抗拉強度','管厚',
-  '售價','廠別編號','預設倉號','庫存控管','批號控管',
-  '英文品名','銷貨品名','外徑','內徑','內箱','中箱','外箱',
-  '外箱材積','外箱淨重','外箱毛重','正面漆種','背面漆種',
-  '正面漆膜厚','背面漆膜厚','包裝方式','成本類別',
+  // ── 識別 ─────────────────────────────────
+  '類別','型號','品名規格','銷貨品名','材質編號','廠別編號',
+  // ── 規格尺寸 ─────────────────────────────
+  '厚度','寬度','長度',
+  // ── 表面處理 ─────────────────────────────
+  '顏色','漆種','正面漆種','背面漆種','正面漆膜厚','背面漆膜厚',
+  '鍍層','抗拉強度','包裝方式','單位',
+  // ── 庫存數量 ─────────────────────────────
+  '本倉數量','本倉總數','寄倉數量','寄倉總數',
+  // ── 成本計算 ─────────────────────────────
+  '公式編號','單位重','密度','成本基準','進價','金額',
+  // ── 銷售資訊 ─────────────────────────────
+  '發票型號','售價','異動日期','備註','建檔日期',
+  // ── 控管 ─────────────────────────────────
+  '預設倉號','庫存控管','批號控管','安全數量','安全總數',
+  // ── 其他規格 ─────────────────────────────
+  '管厚','外徑','內徑','英文品名',
+  '外箱材積','外箱淨重','外箱毛重','成本類別',
 ];
 
 // Columns with numeric formatting
@@ -914,12 +990,16 @@ function onMasterCellKey(e, input, idx, col) {
 //  FORM PANEL
 // ==========================================
 const FORM_FIELDS = [
-  '型號','品名規格','類別','材質編號','成本類別',
-  '厚度','寬度','長度','顏色','漆種','管厚','抗拉強度',
-  '單位','本倉數量','本倉總數','寄倉數量','寄倉總數',
-  '公式編號','單位重','密度','進價','售價',
-  '發票型號','安全數量','安全總數','異動日期','備註',
-  '預設倉號','庫存控管','批號控管',
+  // 表單上所有有 id="f_xxx" 的欄位（與 HTML 同步）
+  '型號','品名規格','銷貨品名','類別',
+  '材質編號','廠別編號','厚度','寬度','長度','顏色',
+  '漆種','正面漆種','背面漆種','色碼',
+  '正面漆膜厚','背面漆膜厚','鍍層','抗拉強度',
+  '包裝方式','單位','本倉數量','本倉總數',
+  '寄倉數量','寄倉總數','公式編號','單位重',
+  '密度','成本基準','進價','金額',
+  '發票型號','售價','異動日期','備註',
+  '建檔日期','庫存控管','預設倉號','批號控管',
 ];
 
 function fillForm(row) {
@@ -927,16 +1007,29 @@ function fillForm(row) {
   FORM_FIELDS.forEach(f => {
     const el = document.getElementById('f_'+f);
     if (!el) return;
-    const v = g(row,f);
+    const v = g(row, f);
+    // SELECT 處理
+    if (el.tagName === 'SELECT') {
+      if (f === '成本基準') {
+        el.value = v || '1';  // 成本基準預設1
+      } else {
+        el.value = v || '';   // 其他 select（庫存控管）保持空白
+      }
+      return;
+    }
+    // 日期格式化
     if (f === '異動日期' || f === '建檔日期') {
       el.value = fmtDate(v);
-    } else if (f === '成本基準') {
-      el.value = v || 1;
-    } else {
-      el.value = v;
+      return;
     }
+    // 數字格式化
+    if (NUM_COLS.has(f)) {
+      el.value = v !== '' ? fmtNum(v) : '';
+      return;
+    }
+    el.value = v;
   });
-  // Computed
+  // 計算欄位
   const goldEl = document.getElementById('f_金額');
   if (goldEl) goldEl.value = calcGold(row);
 }
@@ -1278,10 +1371,16 @@ function closeLookup() { hide('lookup-modal'); }
 // ==========================================
 function switchSubTab(tab) {
   currentSubTab = tab;
-  ['master','warehouse'].forEach(t => {
-    document.getElementById('stab_'+t).classList.toggle('active', t===tab);
-    document.getElementById('panel_'+t).classList.toggle('active', t===tab);
+  ['master','warehouse','lot'].forEach(t => {
+    const stab = document.getElementById('stab_'+t);
+    const panel = document.getElementById('panel_'+t);
+    if (stab)  stab.classList.toggle('active', t===tab);
+    if (panel) panel.classList.toggle('active', t===tab);
   });
+  if (tab === 'lot') {
+    renderLotGrid();
+    return;
+  }
   if (tab === 'warehouse') {
     renderWhLeft();
     if (selMaster) renderWhMid(selMaster);
@@ -1293,6 +1392,51 @@ function switchSubTab(tab) {
 }
 
 function switchModule(mod) { /* future: multiple modules */ }
+
+// ==========================================
+//  LOT GRID（批號明細）
+// ==========================================
+function renderLotGrid() {
+  const tbody = document.getElementById('lot-tbody');
+  if (!tbody) return;
+  // 依目前選取的型號過濾 detailData
+  const 型號 = selMaster ? g(selMaster,'型號') : null;
+  const rows = 型號
+    ? detailData.filter(r => g(r,'型號') === 型號)
+    : detailData;
+
+  tbody.innerHTML = '';
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 9;
+    td.className = 'no-data';
+    td.style.cssText = 'text-align:center;padding:12px;color:#888;font-style:italic;';
+    td.textContent = 型號
+      ? `型號 ${型號} 無批號資料`
+      : '請先選取型號，再切換至批號明細頁';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+  const COLS = ['型號','倉庫編號','批號','數量','總數','長度M','異動日期','備註'];
+  rows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    // 序號
+    const tdN = document.createElement('td');
+    tdN.className = 'row-num-td'; tdN.textContent = i + 1;
+    tr.appendChild(tdN);
+    COLS.forEach(col => {
+      const td = document.createElement('td');
+      td.style.padding = '0 3px';
+      if (col === '異動日期') td.textContent = fmtDate(g(row,col));
+      else if (NUM_COLS.has(col)) { td.textContent = fmtNum(g(row,col)); td.style.textAlign='right'; }
+      else td.textContent = g(row,col);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
 
 // ==========================================
 //  SETTINGS
