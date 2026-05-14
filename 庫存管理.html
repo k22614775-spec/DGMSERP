@@ -7,8 +7,9 @@
 <style>
 /* ===== RESET & BASE ===== */
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Microsoft YaHei','微軟正黑體','Arial',sans-serif;font-size:12px;}
-html,body{height:100%;overflow:hidden;background:#f0f0f0;color:#000;
-  display:flex;flex-direction:column;}  /* flex column 讓 content 填滿剩餘 */
+html{height:100%;}
+body{height:100vh;overflow:hidden;background:#f0f0f0;color:#000;
+  display:flex;flex-direction:column;}  /* 用 100vh 而非 100%，避免 iframe 內層高度解析失常 */
 
 /* ===== TOP NAV BAR ===== */
 #top-nav{
@@ -61,10 +62,11 @@ html,body{height:100%;overflow:hidden;background:#f0f0f0;color:#000;
 #form-panel{
   display:grid;
   grid-template-columns:repeat(6,1fr);
+  grid-auto-rows:minmax(21px,auto);
   column-gap:8px;row-gap:3px;
   padding:4px 8px;background:#f0f0f0;
   border-bottom:2px solid #808080;
-  flex-shrink:0;align-items:center;
+  flex-shrink:0;
 }
 /* 欄位格：label + input 水平不換行 */
 .fc{display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;}
@@ -115,11 +117,11 @@ select.finput{height:18px;padding:0 2px;}
 /* ===== CONTENT & PANELS ===== */
 /* flex:1 填滿 body 剩餘空間（不用 100vh，避免 iframe 高度計算錯誤）*/
 #content{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
-.tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.tab-panel{display:none;flex:1;min-height:0;overflow:hidden;flex-direction:column;}
 .tab-panel.active{display:flex;}
 
 /* ===== MASTER GRID ===== */
-#master-grid-wrap{flex:1;overflow:auto;background:#fffff0;}
+#master-grid-wrap{flex:1;min-height:0;overflow:auto;background:#fffff0;}
 .data-grid{border-collapse:collapse;width:max-content;min-width:100%;}
 .data-grid thead th{
   position:sticky;top:0;z-index:5;
@@ -157,7 +159,7 @@ select.finput{height:18px;padding:0 2px;}
 .data-grid tr.selected td input:focus{background:#ffffe0 !important;color:#000 !important;}
 
 /* ===== SPLIT VIEW ===== */
-#split-view{display:flex;flex:1;overflow:hidden;}
+#split-view{display:flex;flex:1;min-height:0;overflow:hidden;}
 .split-pane{display:flex;flex-direction:column;overflow:hidden;border-right:2px solid #808080;min-width:0;}
 .split-pane:last-child{flex:1;border-right:none;}
 .pane-header{
@@ -554,7 +556,7 @@ select.finput{height:18px;padding:0 2px;}
 
   <!-- ===== TAB: 批號明細 ===== -->
   <div class="tab-panel" id="panel_lot">
-    <div id="lot-grid-wrap" style="flex:1;overflow:auto;background:#fffff0;">
+    <div id="lot-grid-wrap" style="flex:1;min-height:0;overflow:auto;background:#fffff0;">
       <table class="data-grid" id="lot-grid">
         <thead>
           <tr>
