@@ -735,12 +735,14 @@ async function refreshAll() {
     document.getElementById('demo-banner').style.display='none';
     setStatus(`已載入：主檔 ${masterData.length} 筆 · 細項 ${detailData.length} 筆 · 儲位 ${storageData.length} 筆`);
     clearDirty();
-    renderAll();
   } catch(e) {
-    setStatus('❌ 載入失敗：' + e.message);
+    // 載入失敗仍要渲染（顯示欄位標題 + 空資料提示）
+    masterData = []; detailData = []; storageData = [];
+    setStatus('❌ 載入失敗：' + e.message + '　（請確認資料表是否已建立）');
     console.error(e);
   } finally {
     hide('loading');
+    renderAll();   // 無論成功或失敗，一律渲染（確保欄位標題顯示）
   }
 }
 
@@ -769,9 +771,21 @@ function renderMasterGrid() {
 
   // Build rows
   tbody.innerHTML = '';
-  masterData.forEach((row, idx) => {
-    tbody.appendChild(buildMasterTr(row, idx));
-  });
+  if (masterData.length === 0) {
+    // 無資料時仍顯示一行提示，讓欄位標題維持可見
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = MASTER_COLS.length + 1;
+    td.className = 'no-data';
+    td.style.cssText = 'text-align:center;padding:12px;color:#888;font-style:italic;';
+    td.textContent = '尚無資料　（請確認 Supabase 連線設定與資料表是否已建立）';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    masterData.forEach((row, idx) => {
+      tbody.appendChild(buildMasterTr(row, idx));
+    });
+  }
 
   setCount(masterData.length);
 }
@@ -1306,51 +1320,4 @@ async function testConn() {
     const sb = window.supabase.createClient(url, key, {auth:{persistSession:false}});
     const { data, error } = await sb.from(t1).select('*').limit(1);
     if (error) throw error;
-    alert(`✅ 連線成功！回傳 ${data ? data.length : 0} 筆測試資料。`);
-  } catch(e) {
-    alert('❌ 連線失敗：\n' + e.message + '\n\n請確認：\n1. URL/Key 是否正確\n2. 資料表名稱是否存在\n3. RLS 是否允許 anon 存取');
-  }
-}
-
-// ==========================================
-//  GLOBAL KEYBOARD SHORTCUTS
-// ==========================================
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeLookup();
-    closeSettings();
-  }
-  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveChanges(); }
-  if (e.ctrlKey && e.key === 'n') { e.preventDefault(); addRow(); }
-  if (e.ctrlKey && e.key === 'r') { e.preventDefault(); refreshAll(); }
-
-  // Enter in lookup search → select first visible
-  if (e.key === 'Enter' && document.getElementById('lookup-modal').classList.contains('open')) {
-    const firstVis = document.querySelector('#lookup-tbody tr:not([style*="display: none"])');
-    if (firstVis) firstVis.click();
-  }
-});
-
-// Close modals on background click
-document.getElementById('lookup-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeLookup();
-});
-document.getElementById('settings-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeSettings();
-});
-
-// ==========================================
-//  INIT
-// ==========================================
-window.addEventListener('load', () => {
-  initSB();
-  if (!CFG.url || !CFG.key) {
-    loadDemoData();
-    setTimeout(openSettings, 600);   // Prompt settings on first load
-  } else {
-    refreshAll();
-  }
-});
-</script>
-</body>
-</html>
+    alert(`✅ �
