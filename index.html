@@ -164,6 +164,8 @@ html,body{height:100%;overflow:hidden;font-family:'Microsoft YaHei','微軟正�
       <div class="dd-item" onclick="ERP.openModule('user-mgmt')">帳號管理</div>
       <div class="dd-sep"></div>
       <div class="dd-item" onclick="ERP.openModule('backup')">資料備份</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item" onclick="ERP.openModule('ui-designer')">🔧 介面設計工具</div>
     </div>
     <div class="dropdown-menu" id="dd-window">
       <div class="dd-item" onclick="ERP.closeAllModules()">關閉所有視窗</div>
@@ -341,6 +343,7 @@ const ERP = (() => {
     // ── 系統 ─────────────────────────────────────────
     'settings'         :{ label:'系統設定',   load: placeholder },
     'about'            :{ label:'關於本系統', load: aboutPanel  },
+    'ui-designer'      :{ label:'🔧介面設計工具', load: loadUIDesigner },
   };
 
   const _open = new Map();   // key -> {tab, panel}
@@ -459,6 +462,7 @@ const ERP = (() => {
 
   /** 各模組對應的 HTML 檔 */
   function loadInventory(panel)       { iframeLoad(panel,'庫存管理.html'); }
+  function loadUIDesigner(panel)      { iframeLoad(panel,'設計工具.html'); }
   function loadSalesOrder(panel)      { iframeLoad(panel,'銷貨訂單.html'); }
   function loadPurchaseOrder(panel)   { iframeLoad(panel,'採購單.html'); }
   function loadGoodsReceipt(panel)    { iframeLoad(panel,'進貨單.html'); }
